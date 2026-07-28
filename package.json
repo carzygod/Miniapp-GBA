@@ -4,7 +4,7 @@
   "private": true,
   "description": "MiniGBA WeChat Mini Program client",
   "scripts": {
-    "build:weapp": "taro build --type weapp",
+    "build:weapp": "taro build --type weapp && node scripts/validate-weapp-output.mjs",
     "dev:weapp": "taro build --type weapp --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage.enabled",
