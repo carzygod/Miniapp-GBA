@@ -130,6 +130,26 @@ func maintenanceLoop(ctx context.Context, store *database.Store, blobs *blob.FSS
 		} else if processed > 0 {
 			logger.Info("account deletions completed", "count", processed)
 		}
+		if pruned, err := store.PruneHistory(ctx, 500); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("save history pruning failed", "error", err)
+		} else if pruned > 0 {
+			logger.Info("save history pruned", "versions", pruned)
+		}
+		if purged, err := store.PurgeDeletedHeads(ctx, 100); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("deleted save purge failed", "error", err)
+		} else if purged > 0 {
+			logger.Info("deleted save heads purged", "heads", purged)
+		}
+		if removed, err := store.DeleteExpiredIdempotency(ctx, 1000); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("idempotency cleanup failed", "error", err)
+		} else if removed > 0 {
+			logger.Info("expired idempotency keys removed", "count", removed)
+		}
+		if removed, err := store.DeleteExpiredSessions(ctx, 1000); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("session cleanup failed", "error", err)
+		} else if removed > 0 {
+			logger.Info("expired sessions removed", "count", removed)
+		}
 		digests, err := store.DueBlobDigests(ctx, 100)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			logger.Error("blob cleanup scan failed", "error", err)

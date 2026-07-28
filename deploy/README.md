@@ -1,11 +1,13 @@
 # Ubuntu 22.04 bare-metal deployment
 
-The deployment scripts reject virtual machines. They never invoke Docker, WSL, LXC, or another virtualization layer.
+The build and deployment scripts reject virtual machines, containers, and WSL. They never invoke Docker, LXC, or another virtualization layer.
 
 1. Build on an Ubuntu 22.04 bare-metal build host with the pinned Go toolchain:
 
    ```bash
-   MINIGBA_RELEASE_VERSION=0.1.0 ./scripts/build-release.sh
+   MINIGBA_RELEASE_VERSION=0.1.0 \
+   MINIGBA_TEST_DATABASE_URL='postgres://minigba@/minigba_test?host=/var/run/postgresql&sslmode=disable' \
+   ./scripts/build-release.sh
    ```
 
 2. On a clean Ubuntu 22.04 bare-metal server, reserve a high port and bootstrap once:

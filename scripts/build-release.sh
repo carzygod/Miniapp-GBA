@@ -5,10 +5,12 @@ repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$repo_dir/scripts/require-ubuntu-22.04.sh"
 source "$repo_dir/toolchains/versions.env"
 : "${MINIGBA_RELEASE_VERSION:?Set MINIGBA_RELEASE_VERSION}"
+: "${MINIGBA_TEST_DATABASE_URL:?Set MINIGBA_TEST_DATABASE_URL to a dedicated database whose name ends in _test}"
 [[ "$MINIGBA_RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || { echo "invalid release version" >&2; exit 1; }
 [[ "$(go version)" == "go version go${GO_VERSION} linux/amd64" ]] || { echo "Go ${GO_VERSION} linux/amd64 is required" >&2; exit 1; }
 
 cd "$repo_dir"
+[[ -z "$(git status --porcelain --untracked-files=normal)" ]] || { echo "release build requires a clean Git worktree" >&2; exit 1; }
 go mod download
 go vet ./...
 go test -race -cover ./...

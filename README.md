@@ -57,6 +57,7 @@ go vet ./...
 ```
 
 Integration tests use a dedicated PostgreSQL database on the Ubuntu 22.04 test host. They do not use containers and never connect to production.
+Set `MINIGBA_TEST_DATABASE_URL` to a database whose name ends in `_test`; each test creates and removes an isolated schema.
 
 ## Deploy
 

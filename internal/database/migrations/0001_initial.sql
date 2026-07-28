@@ -93,11 +93,14 @@ CREATE TABLE deletion_jobs (
 
 CREATE INDEX devices_user_idx ON devices (user_id, last_seen_at DESC);
 CREATE INDEX sessions_user_idx ON sessions (user_id, expires_at DESC) WHERE revoked_at IS NULL;
+CREATE INDEX sessions_expiry_idx ON sessions (expires_at);
+CREATE INDEX sessions_revoked_idx ON sessions (revoked_at) WHERE revoked_at IS NOT NULL;
 CREATE INDEX save_heads_user_idx ON save_heads (user_id, updated_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX save_heads_user_rom_idx ON save_heads (user_id, rom_id, updated_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX save_heads_deleted_idx ON save_heads (deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX save_versions_head_idx ON save_versions (save_head_id, revision DESC) WHERE deleted_at IS NULL;
 CREATE INDEX save_versions_created_idx ON save_versions (created_at) WHERE deleted_at IS NULL;
 CREATE INDEX idempotency_expiry_idx ON idempotency_keys (expires_at);
+CREATE INDEX blobs_delete_after_idx ON blobs (delete_after) WHERE reference_count = 0;
 CREATE INDEX audit_events_user_idx ON audit_events (user_id, created_at DESC);
 CREATE INDEX deletion_jobs_status_idx ON deletion_jobs (status, created_at);
-

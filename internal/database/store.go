@@ -70,6 +70,9 @@ func (s *Store) Login(ctx context.Context, subjectHash, clientDeviceID, displayN
 	if _, err := tx.Exec(ctx, `INSERT INTO sessions(id,user_id,device_id,expires_at) VALUES($1,$2,$3,$4)`, sessionID, userID, deviceID, expiresAt); err != nil {
 		return account.LoginResult{}, fmt.Errorf("create session: %w", err)
 	}
+	if err := audit(ctx, tx, userID, "auth.login", "session", sessionID, map[string]any{"deviceId": deviceID}); err != nil {
+		return account.LoginResult{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return account.LoginResult{}, fmt.Errorf("commit login: %w", err)
 	}
@@ -89,22 +92,38 @@ func (s *Store) SessionActive(ctx context.Context, userID, sessionID string) (bo
 }
 
 func (s *Store) RevokeSession(ctx context.Context, userID, sessionID string) error {
-	_, err := s.pool.Exec(ctx, `UPDATE sessions SET revoked_at=COALESCE(revoked_at,now()) WHERE id=$1 AND user_id=$2`, sessionID, userID)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin session revocation: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `UPDATE sessions SET revoked_at=COALESCE(revoked_at,now()) WHERE id=$1 AND user_id=$2`, sessionID, userID)
 	if err != nil {
 		return fmt.Errorf("revoke session: %w", err)
 	}
-	return nil
+	if err := audit(ctx, tx, userID, "auth.logout", "session", sessionID, nil); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *Store) RefreshSession(ctx context.Context, userID, sessionID string, expiresAt time.Time) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE sessions SET expires_at=$3 WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL AND expires_at>now()`, sessionID, userID, expiresAt)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin session refresh: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	tag, err := tx.Exec(ctx, `UPDATE sessions SET expires_at=$3 WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL AND expires_at>now()`, sessionID, userID, expiresAt)
 	if err != nil {
 		return fmt.Errorf("refresh session: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return account.ErrUnavailable
 	}
-	return nil
+	if err := audit(ctx, tx, userID, "auth.refresh", "session", sessionID, map[string]any{"expiresAt": expiresAt}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *Store) RequestDeletion(ctx context.Context, userID string) (account.DeletionStatus, error) {
@@ -130,6 +149,9 @@ func (s *Store) RequestDeletion(ctx context.Context, userID string) (account.Del
 	var result account.DeletionStatus
 	if err := tx.QueryRow(ctx, `INSERT INTO deletion_jobs(id,user_id,status) VALUES($1,$2,'pending') RETURNING id,status,attempts,created_at,updated_at`, jobID, userID).Scan(&result.JobID, &result.Status, &result.Attempts, &result.CreatedAt, &result.UpdatedAt); err != nil {
 		return account.DeletionStatus{}, fmt.Errorf("queue account deletion: %w", err)
+	}
+	if err := audit(ctx, tx, userID, "account.delete.request", "account", userID, map[string]any{"jobId": jobID}); err != nil {
+		return account.DeletionStatus{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return account.DeletionStatus{}, fmt.Errorf("commit account deletion: %w", err)
@@ -425,6 +447,9 @@ func audit(ctx context.Context, tx pgx.Tx, userID, action, targetType, targetID 
 	id, err := ids.NewUUID()
 	if err != nil {
 		return err
+	}
+	if metadata == nil {
+		metadata = map[string]any{}
 	}
 	body, err := json.Marshal(metadata)
 	if err != nil {

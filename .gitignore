@@ -8,6 +8,7 @@
 /.idea/
 /.vscode/
 *.test
+/*.exe
 *.out
 *.prof
 *.log
