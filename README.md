@@ -21,7 +21,7 @@ MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini p
 ```text
 config/                 Taro build configuration
 src/pages/library/      Local game library and ROM import
-src/pages/player/       Canvas player and virtual controls
+src/player/             Player subpackage, Canvas runtime, and controls
 src/pages/saves/        Local/cloud versions and conflicts
 src/pages/settings/     Display, audio, controls, storage, privacy
 src/components/         Reusable Taro components
@@ -51,6 +51,7 @@ The checked-in development WASM asset is provenance-pinned in `src/assets/minigb
 ## Verify
 
 ```bash
+export TARO_APP_API_BASE_URL=https://api.example.invalid
 npm run typecheck
 npm run lint
 npm test

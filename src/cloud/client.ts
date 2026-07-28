@@ -6,7 +6,7 @@ export interface CloudSaveVersion{romId:string;kind:SaveKind;slot:string;revisio
 const tokenKey='minigba.accessToken'
 const deletionKey='minigba.deletionReceiptToken'
 const deviceKey='minigba.clientDeviceId'
-const apiBase=(process.env.TARO_APP_API_BASE_URL??'').replace(/\/$/,'')
+const apiBase=__MINIGBA_API_BASE_URL__.replace(/\/$/,'')
 
 export class CloudConflictError extends Error{constructor(readonly current:CloudSaveHead){super('云端存档已更新');this.name='CloudConflictError'}}
 
@@ -20,6 +20,13 @@ export class CloudClient{
     Taro.setStorageSync(tokenKey,response.data.accessToken)
   }
   isLoggedIn():boolean{return Boolean(Taro.getStorageSync(tokenKey))}
+  async refresh():Promise<void>{
+    if(!this.isLoggedIn()||!apiBase)return
+    const response=await Taro.request<{accessToken?:string}>({url:`${apiBase}/v1/auth/refresh`,method:'POST',header:this.headers()})
+    if(response.statusCode===200&&response.data.accessToken){Taro.setStorageSync(tokenKey,response.data.accessToken);return}
+    if(response.statusCode===401){Taro.removeStorageSync(tokenKey);return}
+    throw new Error(`云服务会话刷新失败 (${response.statusCode})`)
+  }
   async logout():Promise<void>{try{await Taro.request({url:`${apiBase}/v1/auth/logout`,method:'POST',header:this.headers()})}finally{Taro.removeStorageSync(tokenKey)}}
   async upload(manifest:SaveManifest,bytes:Uint8Array,idempotencyKey:string):Promise<{revision:number;checksum:string}>{
     const url=`${apiBase}/v1/saves/${manifest.romId}/${manifest.kind}/${manifest.slot}`

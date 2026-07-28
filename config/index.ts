@@ -3,6 +3,9 @@ import { defineConfig } from '@tarojs/cli'
 export default defineConfig({
   projectName: 'minigba',
   date: '2026-07-28',
+  defineConstants: {
+    __MINIGBA_API_BASE_URL__: JSON.stringify(process.env.TARO_APP_API_BASE_URL ?? ''),
+  },
   designWidth: 750,
   deviceRatio: { 750: 1 },
   sourceRoot: 'src',

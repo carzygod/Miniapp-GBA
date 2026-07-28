@@ -2,6 +2,8 @@ declare const WXWebAssembly: {
   instantiate(path: string, imports: WebAssembly.Imports): Promise<WebAssembly.WebAssemblyInstantiatedSource>
 }
 
+declare const __MINIGBA_API_BASE_URL__: string
+
 interface WechatCanvasNode {
   width: number
   height: number
@@ -17,4 +19,3 @@ interface WechatCanvasRenderingContext2D {
   putImageData(imageData: ImageData, dx: number, dy: number): void
   createImageData(width: number, height: number): ImageData
 }
-
