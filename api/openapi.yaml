@@ -272,12 +272,13 @@ components:
     SHA256: { type: string, pattern: '^[0-9a-f]{64}$' }
     LoginResponse:
       type: object
-      required: [accessToken, tokenType, expiresAt, deviceId]
+      required: [accessToken, tokenType, expiresAt, deviceId, userId]
       properties:
         accessToken: { type: string }
         tokenType: { type: string, const: Bearer }
         expiresAt: { type: string, format: date-time }
         deviceId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
     TokenResponse:
       type: object
       required: [accessToken, tokenType, expiresAt]

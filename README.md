@@ -1,6 +1,6 @@
 # MiniGBA API
 
-MiniGBA API is the standalone Go service for WeChat authentication, versioned cloud saves, conflict detection, data export, and account deletion.
+MiniGBA API is the standalone Go service for WeChat authentication, versioned cloud saves, conflict detection, client-driven data export, and account deletion.
 
 ## Runtime
 
@@ -18,6 +18,7 @@ MiniGBA API is the standalone Go service for WeChat authentication, versioned cl
 - Binary save uploads with SHA-256, `If-Match` revisions, and idempotency keys.
 - Battery, manual state, and auto-state version history.
 - Cross-device conflict responses that never silently overwrite data.
+- Authenticated list and content endpoints used by the client to export every cloud save without creating server-side archive files.
 - Atomic filesystem blob commits and delayed orphan cleanup.
 - Queryable account deletion jobs, background erasure, delayed blob collection, and append-only completion audit.
 - Liveness, readiness, and service information endpoints.
@@ -69,3 +70,7 @@ See `deploy/README.md`. Production releases are immutable directories under `/op
 - User-provided names never become filesystem paths.
 - Secrets are read from permission-restricted files.
 - Logs exclude tokens, WeChat identifiers, save contents, and local secret paths.
+
+Release archives include the OpenAPI contract, Apache-2.0 notice, third-party
+notices, Go module lock files, CycloneDX SBOM, license table, build information,
+and checksums for every archived file.

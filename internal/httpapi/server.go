@@ -146,7 +146,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request, requestID string)
 		writeError(w, requestID, http.StatusInternalServerError, "LOGIN_FAILED", "The session could not be created", nil)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"accessToken": token, "tokenType": "Bearer", "expiresAt": expires, "deviceId": login.DeviceID})
+	writeJSON(w, http.StatusOK, map[string]any{"accessToken": token, "tokenType": "Bearer", "expiresAt": expires, "deviceId": login.DeviceID, "userId": login.UserID})
 }
 
 func (s *Server) authenticate(w http.ResponseWriter, r *http.Request, requestID string) (auth.Claims, bool) {

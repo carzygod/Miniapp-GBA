@@ -14,10 +14,12 @@ cd "$repo_dir"
 go mod download
 go vet ./...
 go test -race -cover ./...
-mkdir -p build dist
+mkdir -p build dist/reports
 commit="$(git rev-parse --verify HEAD)"
 build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 go build -trimpath -ldflags="-s -w -X github.com/minigba-cloud/minigba-api/internal/buildinfo.Version=$MINIGBA_RELEASE_VERSION -X github.com/minigba-cloud/minigba-api/internal/buildinfo.Commit=$commit -X github.com/minigba-cloud/minigba-api/internal/buildinfo.BuildTime=$build_time" -o build/minigba-api ./cmd/api
+go run ./cmd/sbom -output dist/reports/sbom.cdx.json -licenses dist/reports/licenses.tsv
+go version -m build/minigba-api > dist/reports/go-build-info.txt
 
 stage="$(mktemp -d)"
 trap 'rm -rf -- "$stage"' EXIT
@@ -25,8 +27,13 @@ install -m 0755 build/minigba-api "$stage/minigba-api"
 install -m 0644 api/openapi.yaml "$stage/openapi.yaml"
 install -m 0644 deploy/minigba-api.service "$stage/minigba-api.service"
 install -m 0644 deploy/nginx-high-port.conf "$stage/nginx-high-port.conf"
+install -m 0644 LICENSE "$stage/LICENSE-MiniGBA-Apache-2.0.txt"
+install -m 0644 THIRD_PARTY_NOTICES.md "$stage/THIRD_PARTY_NOTICES.md"
+install -m 0644 go.mod "$stage/go.mod"
+install -m 0644 go.sum "$stage/go.sum"
+cp -R dist/reports "$stage/reports"
 printf '%s\n' "$MINIGBA_RELEASE_VERSION" > "$stage/VERSION"
-(cd "$stage" && sha256sum minigba-api openapi.yaml > SHA256SUMS)
+(cd "$stage" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
 archive="dist/minigba-api-${MINIGBA_RELEASE_VERSION}-linux-amd64.tar.gz"
 tar -C "$stage" -czf "$archive" .
 sha256sum "$archive" > "$archive.sha256"

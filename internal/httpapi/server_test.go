@@ -108,12 +108,16 @@ func TestLoginAuthenticationAndUpload(t *testing.T) {
 	}
 	var loginResponse struct {
 		AccessToken string `json:"accessToken"`
+		UserID      string `json:"userId"`
 	}
 	if err := json.Unmarshal(login.Body.Bytes(), &loginResponse); err != nil {
 		t.Fatal(err)
 	}
 	if loginResponse.AccessToken == "" {
 		t.Fatal("missing access token")
+	}
+	if loginResponse.UserID != httpTestUserID {
+		t.Fatalf("userId = %q", loginResponse.UserID)
 	}
 
 	body := []byte("save-content")
