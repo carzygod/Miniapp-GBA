@@ -1,0 +1,4 @@
+[submodule "vendor/mgba"]
+	path = vendor/mgba
+	url = https://github.com/mgba-emu/mgba.git
+
