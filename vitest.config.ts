@@ -7,7 +7,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
-      include: ['src/domain/**/*.ts', 'src/emulator/input.ts', 'src/storage/**/*.ts'],
+      include: [
+        'src/cloud/**/*.ts', 'src/diagnostics.ts', 'src/domain/**/*.ts',
+        'src/emulator/audio-output.ts', 'src/emulator/input.ts', 'src/settings.ts',
+        'src/storage/**/*.ts',
+      ],
       exclude: ['src/**/*.test.ts'],
     },
   },

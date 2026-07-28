@@ -25,6 +25,7 @@ export interface AppSettings {
 
 const activeScopeKey = 'minigba.settings.activeScope.v1'
 const legacyKey = 'minigba.settings.v1'
+const accountIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 export const defaultSettings: AppSettings = {
   sound: true,
   volume: 100,
@@ -60,12 +61,13 @@ export function resetSettings(): AppSettings {
 }
 
 export function setSettingsAccountScope(accountId?: string): void {
-  if (accountId && /^[0-9a-f-]{36}$/.test(accountId)) Taro.setStorageSync(activeScopeKey, accountId)
+  if (accountId && accountIdPattern.test(accountId)) Taro.setStorageSync(activeScopeKey, accountId)
   else Taro.removeStorageSync(activeScopeKey)
 }
 
 export function activeScope(): string {
-  return Taro.getStorageSync<string>(activeScopeKey) || 'anonymous'
+  const stored=Taro.getStorageSync<string>(activeScopeKey)
+  return stored&&accountIdPattern.test(stored)?stored:'anonymous'
 }
 
 function settingsKey(): string { return `minigba.settings.v2.${activeScope()}` }

@@ -1,17 +1,22 @@
 import Taro from '@tarojs/taro'
 import type {SaveManifest,SyncTask} from '../domain/models'
 import {sha256Hex} from '../domain/sha256'
-import {loadSettings} from '../settings'
+import {activeScope,loadSettings} from '../settings'
 import {libraryRepository,saveRepository,syncQueue} from '../services'
 import {cloudClient,CloudConflictError,CloudRequestError} from './client'
 
-class SyncService{
-  private running=false
+export class SyncService{
+  private exclusiveTail:Promise<void>=Promise.resolve()
+  async exclusive<T>(operation:()=>Promise<T>):Promise<T>{
+    const previous=this.exclusiveTail
+    let release!:()=>void
+    this.exclusiveTail=new Promise(resolve=>{release=resolve})
+    await previous
+    try{return await operation()}finally{release()}
+  }
   async enqueue(manifest:SaveManifest):Promise<void>{const now=new Date().toISOString();await syncQueue.enqueue({id:uuid(),romId:manifest.romId,kind:manifest.kind,slot:manifest.slot,localRevision:manifest.localRevision,cloudRevision:manifest.cloudRevision,checksum:manifest.checksum,path:saveRepository.contentPath(manifest.romId,manifest.kind,manifest.slot),attempts:0,nextAttemptAt:now,createdAt:now})}
   async runDue():Promise<void>{
-    if(this.running||!loadSettings().cloudSync||!cloudClient.isLoggedIn())return
-    this.running=true
-    try{const now=new Date().toISOString(),settings=loadSettings();for(const task of await syncQueue.list()){if(task.terminal||task.nextAttemptAt>now||(task.kind!=='battery'&&!settings.cloudStateSync))continue;await this.runTask(task)}}finally{this.running=false}
+    await this.exclusive(async()=>{if(activeScope()==='anonymous'||!loadSettings().cloudSync||!cloudClient.isLoggedIn())return;const now=new Date().toISOString(),settings=loadSettings();for(const task of await syncQueue.list()){if(task.terminal||task.nextAttemptAt>now||(task.kind!=='battery'&&!settings.cloudStateSync))continue;await this.runTask(task)}})
   }
   private async runTask(task:SyncTask):Promise<void>{try{
     const stored=await saveRepository.load(task.romId,task.kind,task.slot);if(!stored||stored.manifest.localRevision!==task.localRevision||stored.manifest.checksum!==task.checksum){await syncQueue.complete(task.id);return}

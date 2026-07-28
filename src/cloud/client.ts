@@ -25,8 +25,8 @@ export class CloudClient{
   isLoggedIn():boolean{return Boolean(Taro.getStorageSync(tokenKey))}
   async refresh():Promise<void>{
     if(!this.isLoggedIn()||!apiBase)return
-    const response=await Taro.request<{accessToken?:string}>({url:`${apiBase}/v1/auth/refresh`,method:'POST',header:this.headers()})
-    if(response.statusCode===200&&response.data.accessToken){Taro.setStorageSync(tokenKey,response.data.accessToken);return}
+    const response=await Taro.request<{accessToken?:string;userId?:string}>({url:`${apiBase}/v1/auth/refresh`,method:'POST',header:this.headers()})
+    if(response.statusCode===200&&response.data.accessToken&&response.data.userId){Taro.setStorageSync(tokenKey,response.data.accessToken);setSettingsAccountScope(response.data.userId);return}
     if(response.statusCode===401){Taro.removeStorageSync(tokenKey);setSettingsAccountScope();return}
     throw new Error(`云服务会话刷新失败 (${response.statusCode})`)
   }
