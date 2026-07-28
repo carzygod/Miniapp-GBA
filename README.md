@@ -51,3 +51,7 @@ The ABI version is returned by `mgba_wx_abi_version()`. ABI changes require a ma
 ## Licensing
 
 mGBA is licensed under MPL-2.0. The pinned upstream revision and local changes are recorded in `UPSTREAM.md`. Distribution artifacts must include mGBA and enabled third-party license notices. MiniGBA-owned wrapper code is Apache-2.0 licensed.
+
+`scripts/build-weapp.sh` emits the WASM checksum, deterministic build metadata,
+CycloneDX SBOM, the MiniGBA notice, the complete mGBA MPL-2.0 text, and the
+pinned upstream record under `dist/`.

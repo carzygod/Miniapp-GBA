@@ -18,3 +18,11 @@ cp "$repo_dir/build/weapp/minigba-core.wasm" "$repo_dir/dist/minigba-core.wasm"
 node "$repo_dir/scripts/verify-wasm.mjs" "$repo_dir/dist/minigba-core.wasm"
 node "$repo_dir/tests/wasm-smoke.mjs" "$repo_dir/dist/minigba-core.wasm"
 sha256sum "$repo_dir/dist/minigba-core.wasm" > "$repo_dir/dist/minigba-core.wasm.sha256"
+mkdir -p "$repo_dir/dist/licenses"
+install -m 0644 "$repo_dir/LICENSE" "$repo_dir/dist/licenses/LICENSE-MiniGBA-Apache-2.0.txt"
+install -m 0644 "$repo_dir/vendor/mgba/LICENSE" "$repo_dir/dist/licenses/LICENSE-mGBA-MPL-2.0.txt"
+install -m 0644 "$repo_dir/UPSTREAM.md" "$repo_dir/dist/UPSTREAM.md"
+node "$repo_dir/scripts/generate-release-metadata.mjs" \
+  "$repo_dir/dist/minigba-core.wasm" \
+  "$repo_dir/dist/sbom.cdx.json" \
+  "$repo_dir/dist/build-metadata.json"
