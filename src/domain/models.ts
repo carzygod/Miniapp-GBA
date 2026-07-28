@@ -1,4 +1,4 @@
-export const LIBRARY_SCHEMA_VERSION = 1 as const
+export const LIBRARY_SCHEMA_VERSION = 2 as const
 export const SAVE_SCHEMA_VERSION = 1 as const
 
 export type CloudState = 'disabled' | 'pending' | 'synced' | 'conflict' | 'error'
@@ -16,6 +16,9 @@ export interface GameEntry {
   playTimeSeconds: number
   batterySave: boolean
   cloudState: CloudState
+  source?: 'wechat-message-file' | 'authorized-download' | 'zip' | 'recovered'
+  lastSyncedAt?: string
+  syncError?: string
 }
 
 export interface LibraryIndex {
@@ -48,6 +51,8 @@ export interface SyncTask {
   attempts: number
   nextAttemptAt: string
   createdAt: string
+  lastError?: string
+  terminal?: boolean
   conflict?: CloudSaveHead & { detectedAt: string }
 }
 

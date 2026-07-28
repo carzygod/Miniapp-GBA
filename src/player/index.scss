@@ -1,4 +1,4 @@
-.player-page{height:100vh;overflow:hidden;background:#0c1011;padding:18rpx 22rpx 10rpx}
+.player-page{height:100vh;overflow:hidden;background:#0c1011;padding:calc(18rpx + env(safe-area-inset-top)) calc(22rpx + env(safe-area-inset-right)) calc(10rpx + env(safe-area-inset-bottom)) calc(22rpx + env(safe-area-inset-left))}
 .player-status{height:76rpx;display:flex;align-items:center;justify-content:space-between;padding:0 10rpx}
 .player-title{display:block;max-width:590rpx;font-size:27rpx;font-weight:740;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player-code{display:block;color:#74807c;font-size:18rpx;margin-top:2rpx}
@@ -11,6 +11,7 @@
 .screen-overlay{position:absolute;inset:18rpx;display:flex;flex-direction:column;gap:24rpx;align-items:center;justify-content:center;background:rgba(4,8,8,.9);color:#aab5b1;font-size:24rpx}
 .start-button{margin:0;width:190rpx;height:68rpx;background:var(--teal);color:#061715;border-radius:5rpx;font-size:25rpx;font-weight:800;display:flex;align-items:center;justify-content:center}
 .fps{position:absolute;right:28rpx;top:24rpx;padding:4rpx 7rpx;background:#000;color:#69e2d4;font-size:17rpx}
-.player-tools{height:74rpx;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:8rpx}
-.player-tools button{margin:0;min-width:0;height:50rpx;padding:0 6rpx;border-radius:4rpx;background:#1e2627;color:#aeb8b4;border:1px solid #35413f;font-size:19rpx;display:flex;align-items:center;justify-content:center}
+.player-tools{height:74rpx;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:6rpx}
+.player-tools button{margin:0;min-width:0;height:50rpx;padding:0 4rpx;border-radius:4rpx;background:#1e2627;color:#aeb8b4;border:1px solid #35413f;font-size:18rpx;display:flex;align-items:center;justify-content:center}
 .player-tools button[disabled]{opacity:.35}
+@media (orientation:landscape){.player-page{display:grid;grid-template-columns:minmax(0,3fr) minmax(360rpx,2fr);grid-template-rows:72rpx 1fr 68rpx;gap:8rpx}.player-status{grid-column:1}.screen-bezel{grid-column:1;grid-row:2;align-self:center}.player-tools{grid-column:1;grid-row:3}.controls{grid-column:2;grid-row:1/4;align-self:center}}

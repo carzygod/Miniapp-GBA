@@ -3,6 +3,7 @@ declare const WXWebAssembly: {
 }
 
 declare const __MINIGBA_API_BASE_URL__: string
+declare const __MINIGBA_ROM_DOWNLOAD_HOSTS__: string
 
 interface WechatCanvasNode {
   width: number

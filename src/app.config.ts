@@ -3,6 +3,8 @@ export default defineAppConfig({
     'pages/library/index',
     'pages/saves/index',
     'pages/settings/index',
+    'pages/storage/index',
+    'pages/diagnostics/index',
   ],
   subPackages: [
     { root: 'player', pages: ['index'] },

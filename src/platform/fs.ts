@@ -54,6 +54,33 @@ export async function listDirectory(path: string): Promise<string[]> {
   catch (error) { if (String(error).includes('no such')) return []; throw error }
 }
 
+export interface FileEntry { path: string; size: number; modifiedAt: number }
+
+export async function fileSize(path: string): Promise<number> {
+  const result = await call<{ stats: { size: number; isFile(): boolean } }>('stat', { path })
+  if (!result.stats.isFile()) throw new Error('Path is not a file')
+  return result.stats.size
+}
+
+export async function listFilesRecursive(path: string): Promise<FileEntry[]> {
+  if (!(await exists(path))) return []
+  const result = await call<{ stats: Record<string, { size: number; lastModifiedTime: number; isFile(): boolean }> }>('stat', { path, recursive: true })
+  return Object.entries(result.stats)
+    .filter(([, stats]) => typeof stats.isFile === 'function' && stats.isFile())
+    .map(([relative, stats]) => ({ path: `${path}/${relative.replace(/^\/+/, '')}`, size: stats.size, modifiedAt: stats.lastModifiedTime }))
+}
+
+export async function moveFile(source: string, target: string): Promise<void> {
+  await ensureDirectory(target.slice(0, target.lastIndexOf('/')))
+  await unlinkIfExists(target)
+  await call<void>('rename', { oldPath: source, newPath: target })
+}
+
+export async function removeDirectoryIfExists(path: string): Promise<void> {
+  try { await call<void>('rmdir', { dirPath: path, recursive: true }) }
+  catch (error) { if (!String(error).includes('no such')) throw error }
+}
+
 export async function unlinkIfExists(path: string): Promise<void> {
   try { await call<void>('unlink', { filePath: path }) }
   catch (error) { if (!String(error).includes('no such')) throw error }

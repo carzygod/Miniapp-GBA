@@ -1,7 +1,8 @@
 .library-page{padding-bottom:160rpx}
 .library-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24rpx;padding-top:16rpx}
 .import-button{margin:0;width:190rpx;min-height:78rpx;border-radius:6rpx;background:var(--teal);color:#071816;font-size:25rpx;font-weight:750;display:flex;align-items:center;justify-content:center}
-.storage-strip{margin:34rpx -32rpx 0;padding:22rpx 32rpx;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;color:var(--muted);font-size:23rpx}
+.library-search{margin-top:28rpx;height:72rpx;padding:0 20rpx;border:1px solid #3c4845;background:#151c1d;border-radius:5rpx}.library-search input{height:100%;font-size:24rpx}
+.storage-strip{margin:22rpx -32rpx 0;padding:17rpx 32rpx;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20rpx;color:var(--muted);font-size:21rpx}.storage-strip>view{display:flex;flex-direction:column;gap:4rpx}.storage-strip button{margin:0;width:144rpx;height:52rpx;padding:0;border-radius:4rpx;border:1px solid #46534f;background:#202829;color:#b8c3bf;font-size:19rpx;display:flex;align-items:center;justify-content:center}
 .game-list{margin:0 -32rpx}
 .game-row{min-height:154rpx;padding:20rpx 32rpx;display:flex;align-items:center;gap:22rpx;border-top:1px solid #283130}
 .game-row:last-child{border-bottom:1px solid #283130}
@@ -11,14 +12,16 @@
 .game-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:7rpx}
 .game-title{font-size:30rpx;font-weight:720;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .game-meta{font-size:20rpx;color:#84918c}
-.game-flags{display:flex;align-items:center;gap:9rpx;color:#a8b2ae;font-size:21rpx}
+.game-flags{display:flex;align-items:center;gap:9rpx;color:#a8b2ae;font-size:19rpx;flex-wrap:wrap}
+.sync-error{font-size:18rpx;color:#ef7894;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .status-dot{width:12rpx;height:12rpx;border-radius:50%;background:#596360}.status-dot.has-save{background:var(--teal)}
 .cloud-state{margin-left:12rpx;color:#77827e}.cloud-state.conflict,.cloud-state.error{color:#ef7894}.cloud-state.pending{color:var(--amber)}.cloud-state.synced{color:var(--teal)}
 .play-arrow{color:#65716d;font-size:24rpx}
 .empty-mark{width:130rpx;height:88rpx;margin:0 auto 20rpx;border:3px solid #46514e;display:flex;align-items:center;justify-content:center;font-size:25rpx;font-weight:900;color:#62706b}
 .empty-import{margin:28rpx auto 0;width:260rpx;height:68rpx;border-radius:5rpx;background:#1e2928;color:var(--teal);border:1px solid #34524e;font-size:23rpx}
 .rename-shade{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:40rpx}
-.rename-dialog{width:100%;max-width:620rpx;border-radius:7rpx;background:#202727;border:1px solid #3a4643;padding:30rpx}
+.rename-dialog,.download-dialog{width:100%;max-width:620rpx;max-height:90vh;overflow:auto;border-radius:7rpx;background:#202727;border:1px solid #3a4643;padding:30rpx}
 .rename-title{display:block;font-size:30rpx;font-weight:760}.rename-detail{display:block;margin-top:8rpx;color:var(--muted);font-size:21rpx}
 .rename-input{height:76rpx;margin-top:28rpx;padding:0 18rpx;background:#101515;border:1px solid #46534f;border-radius:4rpx;font-size:27rpx}
 .rename-actions{display:grid;grid-template-columns:1fr 1fr;gap:14rpx;margin-top:26rpx}.rename-actions button{margin:0;height:66rpx;border-radius:4rpx;background:#303938;color:#d4ddda;font-size:23rpx}.rename-actions .confirm{background:var(--teal);color:#061715;font-weight:760}
+.download-dialog .rename-input{margin-top:16rpx;font-size:22rpx}.download-dialog .rename-detail{line-height:1.5}

@@ -2,7 +2,7 @@ import { SAVE_SCHEMA_VERSION, type SaveKind, type SaveManifest } from '../domain
 import { sha256Hex } from '../domain/sha256'
 import { dataRoot, ensureDirectory, exists, listDirectory, readBytes, readText, unlinkIfExists, writeBytesAtomic, writeTextAtomic } from '../platform/fs'
 
-export interface StoredSave { manifest: SaveManifest; bytes: Uint8Array; path: string }
+export interface StoredSave { manifest: SaveManifest; bytes: Uint8Array; path: string; recoveredFromPrevious?: boolean }
 
 export class SaveRepository {
   async commit(romId: string, kind: SaveKind, slot: string, bytes: Uint8Array, coreBuildId: string, cloudRevision?: number): Promise<SaveManifest> {
@@ -28,16 +28,12 @@ export class SaveRepository {
     const manifest = await this.manifest(romId, kind, slot)
     if (!manifest) return undefined
     const path = `${this.directory(romId, kind, slot)}/current.bin`
-    let bytes:Uint8Array
-    try{bytes=await readBytes(path)}catch(error){const previousPath=`${path}.previous`;if(!(await exists(previousPath)))throw error;bytes=await readBytes(previousPath)}
-    if (bytes.length !== manifest.sizeBytes || sha256Hex(bytes) !== manifest.checksum) {
-      const previousPath = `${path}.previous`
-      if (!(await exists(previousPath))) throw new Error('存档校验失败且没有可恢复副本')
-      const previous = await readBytes(previousPath)
-      if (!previous.length) throw new Error('存档恢复副本为空')
-      return { manifest: { ...manifest, checksum: sha256Hex(previous), sizeBytes: previous.length }, bytes: previous, path: previousPath }
-    }
-    return { manifest, bytes, path }
+    try{const bytes=await readBytes(path);if(bytes.length===manifest.sizeBytes&&sha256Hex(bytes)===manifest.checksum)return{manifest,bytes,path}}catch{ /* previous is checked below */ }
+    const previousPath=`${path}.previous`,previousManifestPath=`${this.directory(romId,kind,slot)}/manifest.json.previous`
+    if(!(await exists(previousPath))||!(await exists(previousManifestPath)))throw new Error('存档校验失败且没有完整的可恢复副本')
+    const previous=await readBytes(previousPath),previousManifest=JSON.parse(await readText(previousManifestPath)) as SaveManifest
+    if(previousManifest.schemaVersion!==SAVE_SCHEMA_VERSION||previousManifest.romId!==romId||previousManifest.kind!==kind||previousManifest.slot!==slot||previous.length!==previousManifest.sizeBytes||sha256Hex(previous)!==previousManifest.checksum)throw new Error('上一成功存档也未通过校验')
+    return{manifest:previousManifest,bytes:previous,path:previousPath,recoveredFromPrevious:true}
   }
 
   async manifest(romId: string, kind: SaveKind, slot: string): Promise<SaveManifest | undefined> {
@@ -63,7 +59,7 @@ export class SaveRepository {
 
   async remove(romId: string, kind: SaveKind, slot: string): Promise<void> {
     const directory=this.directory(romId,kind,slot)
-    for(const name of ['current.bin','current.bin.previous','manifest.json','manifest.json.previous']) await unlinkIfExists(`${directory}/${name}`)
+    for(const name of ['current.bin','current.bin.previous','manifest.json','manifest.json.previous','preview.png','preview.png.previous']) await unlinkIfExists(`${directory}/${name}`)
   }
 
   async removeAll(romId:string):Promise<void>{
@@ -79,6 +75,14 @@ export class SaveRepository {
     await writeTextAtomic(`${directory}/${id}.json`,JSON.stringify({schemaVersion:SAVE_SCHEMA_VERSION,source,romId,kind,slot,checksum,sizeBytes:bytes.length,createdAt:new Date().toISOString(),...metadata}))
     return path
   }
+
+  async storePreview(romId:string,kind:SaveKind,slot:string,png:Uint8Array):Promise<string>{
+    validateKey(romId,kind,slot);if(kind==='battery')throw new Error('电池存档不使用状态预览')
+    if(png.length<8||png[0]!==0x89||png[1]!==0x50||png[2]!==0x4e||png[3]!==0x47)throw new Error('状态预览不是有效 PNG')
+    const path=this.previewPath(romId,kind,slot);await writeBytesAtomic(path,png);const committed=await readBytes(path);if(committed.length!==png.length||sha256Hex(committed)!==sha256Hex(png))throw new Error('状态预览写入校验失败');return path
+  }
+
+  previewPath(romId:string,kind:SaveKind,slot:string):string{validateKey(romId,kind,slot);return`${this.directory(romId,kind,slot)}/preview.png`}
 
   contentPath(romId:string,kind:SaveKind,slot:string):string{validateKey(romId,kind,slot);return`${this.directory(romId,kind,slot)}/current.bin`}
 

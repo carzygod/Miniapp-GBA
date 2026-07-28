@@ -52,6 +52,7 @@ The checked-in development WASM asset is provenance-pinned in `src/assets/minigb
 
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.invalid
+export TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.invalid
 npm run typecheck
 npm run lint
 npm test
@@ -68,3 +69,10 @@ MINIGBA_RELEASE_VERSION=0.1.0 \
 ```
 
 Real-device iOS and Android checks are required for WXWebAssembly, Canvas, multi-touch, WebAudio, background recovery, and save durability. Simulator-only results are not release evidence.
+
+## Licensing and dependency reports
+
+MiniGBA-owned client code is Apache-2.0 licensed. `THIRD_PARTY_NOTICES.md`
+records the runtime boundaries, and the release build writes a CycloneDX SBOM,
+license table, npm audit JSON, and time-bounded security exception into
+`artifacts/reports/`. Reports stay outside the WeChat upload root `dist/`.

@@ -5,6 +5,7 @@ export default defineConfig({
   date: '2026-07-28',
   defineConstants: {
     __MINIGBA_API_BASE_URL__: JSON.stringify(process.env.TARO_APP_API_BASE_URL ?? ''),
+    __MINIGBA_ROM_DOWNLOAD_HOSTS__: JSON.stringify(process.env.TARO_APP_ROM_DOWNLOAD_HOSTS ?? ''),
   },
   designWidth: 750,
   deviceRatio: { 750: 1 },
