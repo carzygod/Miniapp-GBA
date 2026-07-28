@@ -281,11 +281,12 @@ components:
         userId: { type: string, format: uuid }
     TokenResponse:
       type: object
-      required: [accessToken, tokenType, expiresAt]
+      required: [accessToken, tokenType, expiresAt, userId]
       properties:
         accessToken: { type: string }
         tokenType: { type: string, const: Bearer }
         expiresAt: { type: string, format: date-time }
+        userId: { type: string, format: uuid }
     SaveHead:
       type: object
       required: [romId, kind, slot, currentRevision, checksum, sizeBytes, coreBuildId, updatedAt]

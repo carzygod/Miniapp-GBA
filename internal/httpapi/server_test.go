@@ -168,7 +168,7 @@ func TestRefreshVersionsAndDeletionStatus(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/v1/auth/refresh", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	handler.ServeHTTP(refresh, req)
-	if refresh.Code != http.StatusOK || !bytes.Contains(refresh.Body.Bytes(), []byte(`"accessToken"`)) {
+	if refresh.Code != http.StatusOK || !bytes.Contains(refresh.Body.Bytes(), []byte(`"accessToken"`)) || !bytes.Contains(refresh.Body.Bytes(), []byte(`"userId":"`+httpTestUserID+`"`)) {
 		t.Fatalf("refresh status=%d body=%s", refresh.Code, refresh.Body.String())
 	}
 

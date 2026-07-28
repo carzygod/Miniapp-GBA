@@ -109,7 +109,7 @@ func (s *Server) refresh(w http.ResponseWriter, r *http.Request, requestID strin
 		writeError(w, requestID, http.StatusInternalServerError, "REFRESH_FAILED", "A new access token could not be issued", nil)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"accessToken": token, "tokenType": "Bearer", "expiresAt": expiresAt})
+	writeJSON(w, http.StatusOK, map[string]any{"accessToken": token, "tokenType": "Bearer", "expiresAt": expiresAt, "userId": claims.UserID})
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request, requestID string) {
