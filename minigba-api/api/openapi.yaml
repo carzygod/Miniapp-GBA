@@ -1,0 +1,348 @@
+openapi: 3.1.0
+info:
+  title: MiniGBA Cloud Save API
+  version: 1.0.0
+  description: Versioned cloud saves for the MiniGBA WeChat Mini Program. ROM content is never accepted.
+servers:
+  - url: https://api.example.com
+security:
+  - bearerAuth: []
+paths:
+  /health/live:
+    get:
+      security: []
+      operationId: liveness
+      responses:
+        '200': { description: Process is alive }
+  /health/ready:
+    get:
+      security: []
+      operationId: readiness
+      responses:
+        '200': { description: Database is reachable }
+        '503': { $ref: '#/components/responses/Error' }
+  /v1/auth/wechat/login:
+    post:
+      security: []
+      operationId: wechatLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code, clientDeviceId, deviceName]
+              properties:
+                code: { type: string, minLength: 1 }
+                clientDeviceId: { type: string, format: uuid }
+                deviceName: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        '200':
+          description: Session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      responses:
+        '204': { description: Session revoked }
+        '401': { $ref: '#/components/responses/Error' }
+  /v1/auth/refresh:
+    post:
+      operationId: refreshAccessToken
+      responses:
+        '200':
+          description: Access token renewed for the current session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+  /v1/saves:
+    get:
+      operationId: listSaves
+      responses:
+        '200':
+          description: Current save heads
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [saves]
+                properties:
+                  saves: { type: array, items: { $ref: '#/components/schemas/SaveHead' } }
+  /v1/saves/{romId}:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+    get:
+      operationId: listRomSaves
+      responses:
+        '200':
+          description: Current save heads for one ROM
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [saves]
+                properties:
+                  saves: { type: array, items: { $ref: '#/components/schemas/SaveHead' } }
+    delete:
+      operationId: deleteRomSaves
+      responses:
+        '204': { description: Save heads marked for deletion }
+        '404': { $ref: '#/components/responses/Error' }
+  /v1/saves/{romId}/{kind}/{slot}:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+      - $ref: '#/components/parameters/Kind'
+      - $ref: '#/components/parameters/Slot'
+    put:
+      operationId: uploadSave
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: X-Content-SHA256
+          in: header
+          required: true
+          schema: { $ref: '#/components/schemas/SHA256' }
+        - name: X-Core-Build-ID
+          in: header
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 128 }
+        - name: X-Device-ID
+          in: header
+          required: false
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Revision committed or replayed
+          headers:
+            ETag: { schema: { type: string }, description: Current revision ETag }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommitResult' }
+        '409': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deleteSave
+      responses:
+        '204': { description: Save head marked for deletion }
+        '404': { $ref: '#/components/responses/Error' }
+  /v1/saves/{romId}/{kind}/{slot}/content:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+      - $ref: '#/components/parameters/Kind'
+      - $ref: '#/components/parameters/Slot'
+    get:
+      operationId: downloadCurrentSave
+      responses:
+        '200':
+          description: Current save content
+          headers:
+            ETag: { schema: { type: string } }
+            X-Content-SHA256: { schema: { $ref: '#/components/schemas/SHA256' } }
+            X-Revision: { schema: { type: integer, format: int64 } }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '404': { $ref: '#/components/responses/Error' }
+  /v1/saves/{romId}/{kind}/{slot}/versions/{revision}:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+      - $ref: '#/components/parameters/Kind'
+      - $ref: '#/components/parameters/Slot'
+      - name: revision
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      operationId: downloadSaveVersion
+      responses:
+        '200': { description: Historical save content }
+        '404': { $ref: '#/components/responses/Error' }
+  /v1/saves/{romId}/{kind}/{slot}/versions:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+      - $ref: '#/components/parameters/Kind'
+      - $ref: '#/components/parameters/Slot'
+    get:
+      operationId: listSaveVersions
+      responses:
+        '200':
+          description: Historical save version metadata, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [versions]
+                properties:
+                  versions: { type: array, items: { $ref: '#/components/schemas/SaveVersion' } }
+        '404': { $ref: '#/components/responses/Error' }
+  /v1/saves/{romId}/{kind}/{slot}/restore:
+    parameters:
+      - $ref: '#/components/parameters/RomId'
+      - $ref: '#/components/parameters/Kind'
+      - $ref: '#/components/parameters/Slot'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKey'
+    post:
+      operationId: restoreSaveVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [revision]
+              properties:
+                revision: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200':
+          description: Historical content copied to a new revision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommitResult' }
+        '409': { $ref: '#/components/responses/Error' }
+  /v1/account/deletion:
+    post:
+      operationId: requestAccountDeletion
+      parameters:
+        - name: X-Confirm-Account-Deletion
+          in: header
+          required: true
+          schema: { type: string, const: DELETE }
+      responses:
+        '202':
+          description: Deletion queued and all sessions revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionStatus' }
+    get:
+      operationId: getAccountDeletionStatus
+      description: The original access token acts only as a short-lived deletion receipt after sessions are revoked.
+      responses:
+        '200':
+          description: Latest deletion job status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionStatus' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RomId:
+      name: romId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/SHA256' }
+    Kind:
+      name: kind
+      in: path
+      required: true
+      schema: { type: string, enum: [battery, state, auto_state] }
+    Slot:
+      name: slot
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,31}$' }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Quoted base revision, for example `"revision-12"`.
+      schema: { type: string }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    SHA256: { type: string, pattern: '^[0-9a-f]{64}$' }
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, deviceId, userId]
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, const: Bearer }
+        expiresAt: { type: string, format: date-time }
+        deviceId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, userId]
+      properties:
+        accessToken: { type: string }
+        tokenType: { type: string, const: Bearer }
+        expiresAt: { type: string, format: date-time }
+        userId: { type: string, format: uuid }
+    SaveHead:
+      type: object
+      required: [romId, kind, slot, currentRevision, checksum, sizeBytes, coreBuildId, updatedAt]
+      properties:
+        romId: { $ref: '#/components/schemas/SHA256' }
+        kind: { type: string }
+        slot: { type: string }
+        currentRevision: { type: integer, format: int64 }
+        checksum: { $ref: '#/components/schemas/SHA256' }
+        sizeBytes: { type: integer, format: int64 }
+        coreBuildId: { type: string }
+        deviceName: { type: string }
+        updatedAt: { type: string, format: date-time }
+    SaveVersion:
+      type: object
+      required: [romId, kind, slot, revision, checksum, sizeBytes, coreBuildId, createdAt]
+      properties:
+        romId: { $ref: '#/components/schemas/SHA256' }
+        kind: { type: string }
+        slot: { type: string }
+        revision: { type: integer, format: int64 }
+        checksum: { $ref: '#/components/schemas/SHA256' }
+        sizeBytes: { type: integer, format: int64 }
+        coreBuildId: { type: string }
+        deviceName: { type: string }
+        createdAt: { type: string, format: date-time }
+    DeletionStatus:
+      type: object
+      required: [jobId, status, attempts, createdAt, updatedAt]
+      properties:
+        jobId: { type: string, format: uuid }
+        status: { type: string, enum: [pending, running, complete, failed] }
+        attempts: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CommitResult:
+      type: object
+      required: [save, idempotentReplay]
+      properties:
+        save: { type: object }
+        idempotentReplay: { type: boolean }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+            details: {}
+  responses:
+    Error:
+      description: Structured error response
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

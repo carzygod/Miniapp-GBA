@@ -1,0 +1,36 @@
+[Unit]
+Description=MiniGBA API
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=minigba
+Group=minigba
+EnvironmentFile=/etc/minigba/api.env
+ExecStart=/opt/minigba/current/minigba-api serve
+WorkingDirectory=/var/lib/minigba
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ReadWritePaths=/srv/minigba /var/lib/minigba
+ReadOnlyPaths=/etc/minigba
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
+

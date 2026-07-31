@@ -1,0 +1,9 @@
+{
+  "abiVersion": 1,
+  "coreVersion": "0.1.0",
+  "buildId": "mgba-0.10.5-0.1.0",
+  "mgbaCommit": "26b7884bc25a5933960f3cdcd98bac1ae14d42e2",
+  "sha256": "e187175cf04cd105c379727f2bf4a65185045e29da41ba09239b1d51d3d5b79f",
+  "sizeBytes": 505983,
+  "releaseBuildRequiredOn": "Ubuntu 22.04 bare metal"
+}

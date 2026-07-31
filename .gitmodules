@@ -1,0 +1,3 @@
+[submodule "minigba-core/vendor/mgba"]
+	path = minigba-core/vendor/mgba
+	url = https://github.com/mgba-emu/mgba.git

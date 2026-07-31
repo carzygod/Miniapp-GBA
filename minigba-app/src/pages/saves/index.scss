@@ -1,0 +1,9 @@
+.save-summary{margin:34rpx -32rpx 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr}
+.save-summary>view{padding:25rpx 32rpx;color:var(--muted);font-size:21rpx}.save-summary>view+view{border-left:1px solid var(--line)}
+.summary-number{display:block;color:var(--text);font-size:32rpx;font-weight:760;margin-bottom:3rpx}
+.save-list{margin:0 -32rpx}.save-row{min-height:150rpx;padding:22rpx 32rpx;display:flex;align-items:center;gap:20rpx;border-top:1px solid #293230}.save-row:last-child{border-bottom:1px solid #293230}
+.save-type{width:86rpx;height:76rpx;border:1px solid #3c4a47;border-left:6rpx solid var(--teal);display:flex;align-items:center;justify-content:center;font:700 17rpx ui-monospace,monospace;color:#aeb9b5}
+.save-type.conflict{border-left-color:var(--raspberry)}
+.save-preview{width:112rpx;height:76rpx;flex:0 0 auto;border:1px solid #3c4a47;background:#080b0b}
+.save-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:5rpx}.save-game{font-size:27rpx;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.save-meta{font-size:21rpx;color:#a5b0ac}.save-detail{font-size:18rpx;color:#697571;white-space:normal;overflow-wrap:anywhere}.save-error{font-size:18rpx;color:#ef7894;white-space:normal;overflow-wrap:anywhere}
+.save-action{margin:0;width:72rpx;height:52rpx;padding:0;border-radius:4rpx;background:#202928;color:#b9c4c0;border:1px solid #46524f;font-size:20rpx;display:flex;align-items:center;justify-content:center}
