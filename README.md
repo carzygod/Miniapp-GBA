@@ -44,7 +44,19 @@ npm ci
 npm run dev:weapp
 ```
 
-Open the generated `dist` project through the approved WeChat workflow. Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
+For a deterministic import, build once and open the generated output directory in WeChat Developer Tools:
+
+```bash
+npm run build:weapp
+```
+
+```text
+minigba-app/dist
+```
+
+Do not import the repository root or `src`. The project pins WeChat base library `3.16.1`; the production validator rejects a different generated `libVersion` and unsupported WXSS universal selectors. This pin also avoids the incomplete `3.17.0` vendor cache observed with WeChat Developer Tools 2.01.2510290, which surfaced as a simulator HTTP 500 before application code loaded.
+
+Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
 
 The checked-in development WASM asset is provenance-pinned in `src/assets/minigba-core.manifest.json`. A release candidate must replace it with the output of `minigba-core/scripts/build-weapp.sh` built on the same Ubuntu host, then verify the hash before running `scripts/build-release.sh`.
 
