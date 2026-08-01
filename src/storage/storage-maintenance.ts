@@ -4,6 +4,7 @@ export interface StorageUsage {
   roms: number
   batterySaves: number
   stateSaves: number
+  playHistory: number
   screenshots: number
   temporary: number
   quarantine: number
@@ -17,7 +18,7 @@ export async function calculateStorageUsage():Promise<StorageUsage>{
 }
 
 export function classifyStorage(files:FileEntry[]):StorageUsage{
-  const result:StorageUsage={roms:0,batterySaves:0,stateSaves:0,screenshots:0,temporary:0,quarantine:0,other:0,total:0}
+  const result:StorageUsage={roms:0,batterySaves:0,stateSaves:0,playHistory:0,screenshots:0,temporary:0,quarantine:0,other:0,total:0}
   for(const file of files){
     result.total+=file.size
     const path=file.path.replace(/\\/g,'/')
@@ -25,6 +26,7 @@ export function classifyStorage(files:FileEntry[]):StorageUsage{
     if(path.includes('/quarantine/')){result.quarantine+=file.size;continue}
     if(path.includes('/screenshots/')){result.screenshots+=file.size;continue}
     if(path.includes('/roms/')){result.roms+=file.size;continue}
+    if(path.endsWith('/play-history.json')||path.endsWith('/play-history.json.previous')){result.playHistory+=file.size;continue}
     if(path.includes('/saves/')&&path.includes('/battery/')){result.batterySaves+=file.size;continue}
     if(path.includes('/saves/')&&(path.includes('/state/')||path.includes('/auto_state/'))){result.stateSaves+=file.size;continue}
     result.other+=file.size

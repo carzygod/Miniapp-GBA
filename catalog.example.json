@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-01T00:00:00.000Z",
+  "bucket": "rom",
+  "items": [
+    {
+      "romId": "0000000000000000000000000000000000000000000000000000000000000000",
+      "title": "Authorized Homebrew",
+      "gameCode": "DEMO",
+      "downloadUrl": "../../roms/authorized-homebrew.gba",
+      "sizeBytes": 262144,
+      "description": "Replace this entry with a redistributable GBA homebrew title and its exact metadata.",
+      "genres": ["Homebrew"],
+      "region": "World",
+      "language": "English",
+      "featured": true,
+      "license": {
+        "name": "Replace with distribution license",
+        "url": "https://example.com/license",
+        "notice": "The operator must retain evidence that public distribution is authorized."
+      }
+    }
+  ]
+}

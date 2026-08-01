@@ -1,5 +1,7 @@
 export const LIBRARY_SCHEMA_VERSION = 2 as const
 export const SAVE_SCHEMA_VERSION = 1 as const
+export const ROM_CATALOG_SCHEMA_VERSION = 1 as const
+export const PLAY_HISTORY_SCHEMA_VERSION = 1 as const
 
 export type CloudState = 'disabled' | 'pending' | 'synced' | 'conflict' | 'error'
 export type SaveKind = 'battery' | 'state' | 'auto_state'
@@ -16,9 +18,61 @@ export interface GameEntry {
   playTimeSeconds: number
   batterySave: boolean
   cloudState: CloudState
-  source?: 'wechat-message-file' | 'authorized-download' | 'zip' | 'recovered'
+  source?: 'wechat-message-file' | 'authorized-download' | 'r2-catalog' | 'zip' | 'recovered'
+  coverUrl?: string
+  description?: string
+  genres?: string[]
+  region?: string
+  language?: string
+  licenseName?: string
+  catalogUpdatedAt?: string
   lastSyncedAt?: string
   syncError?: string
+}
+
+export interface RomCatalogLicense {
+  name: string
+  url?: string
+  notice?: string
+}
+
+export interface RomCatalogItem {
+  romId: string
+  title: string
+  gameCode?: string
+  downloadUrl: string
+  sizeBytes: number
+  description?: string
+  genres: string[]
+  region?: string
+  language?: string
+  coverUrl?: string
+  featured: boolean
+  updatedAt?: string
+  license: RomCatalogLicense
+}
+
+export interface RomCatalog {
+  schemaVersion: typeof ROM_CATALOG_SCHEMA_VERSION
+  generatedAt: string
+  bucket: string
+  items: RomCatalogItem[]
+}
+
+export type PlaySessionExitReason = 'paused' | 'background' | 'exit' | 'error'
+
+export interface PlaySession {
+  id: string
+  romId: string
+  startedAt: string
+  endedAt: string
+  durationSeconds: number
+  exitReason: PlaySessionExitReason
+}
+
+export interface PlayHistoryIndex {
+  schemaVersion: typeof PLAY_HISTORY_SCHEMA_VERSION
+  sessions: PlaySession[]
 }
 
 export interface LibraryIndex {

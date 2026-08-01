@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 import { unzipSync } from 'fflate'
-import { LIBRARY_SCHEMA_VERSION, type GameEntry, type LibraryIndex } from '../domain/models'
+import { LIBRARY_SCHEMA_VERSION, type GameEntry, type LibraryIndex, type RomCatalogItem } from '../domain/models'
 import { sha256Hex } from '../domain/sha256'
 import { dataRoot, ensureDirectory, exists, fileSize, listFilesRecursive, moveFile, readBytes, readText, unlinkIfExists, writeBytesAtomic, writeTextAtomic } from '../platform/fs'
 
@@ -67,6 +67,31 @@ export class LibraryRepository {
     validateGba(bytes);await confirmHeaderRisk(bytes)
     const fileName=(displayName?.trim()||decodeURIComponent(parsed.pathname.split('/').pop()||'authorized.gba')).replace(/\.gba$/i,'')+'.gba'
     return this.storeBytes(bytes,fileName,'authorized-download')
+  }
+
+  async importCatalogItem(item:RomCatalogItem,onProgress?:(progress:number)=>void):Promise<GameEntry>{
+    await ensureCopyrightConsent()
+    const parsed=new URL(item.downloadUrl)
+    if(parsed.protocol!=='https:'||parsed.username||parsed.password)throw new Error('ROM 广场下载地址必须使用 HTTPS')
+    if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('ROM 广场域名不在发布白名单中')
+    if(!/^[0-9a-f]{64}$/.test(item.romId))throw new Error('ROM 广场 SHA-256 无效')
+    if(!Number.isInteger(item.sizeBytes)||item.sizeBytes<0xc0||item.sizeBytes>MAX_ROM_BYTES)throw new Error('ROM 广场长度无效')
+    const task=Taro.downloadFile({url:parsed.toString(),timeout:30_000})
+    task.progress?.(event=>onProgress?.(Math.max(0,Math.min(100,event.progress))))
+    const response=await task
+    if(response.statusCode!==200)throw new Error(`ROM 下载失败 (${response.statusCode})`)
+    if(response.dataLength!==undefined&&response.dataLength!==item.sizeBytes)throw new Error('下载响应长度与 ROM 目录不一致')
+    const actualSize=await fileSize(response.tempFilePath)
+    if(actualSize!==item.sizeBytes)throw new Error('下载文件长度与 ROM 目录不一致')
+    const bytes=await readBytes(response.tempFilePath)
+    if(sha256Hex(bytes)!==item.romId)throw new Error('下载文件 SHA-256 与 ROM 目录不一致')
+    validateGba(bytes);await confirmHeaderRisk(bytes)
+    const entry=await this.storeBytes(bytes,`${safeFileName(item.title)}.gba`,'r2-catalog')
+    const index=await this.loadIndex(),stored=index.games.find(game=>game.romId===entry.romId)
+    if(!stored)throw new Error('ROM 已写入但游戏库索引缺失')
+    stored.title=item.title;stored.gameCode=item.gameCode||stored.gameCode;stored.coverUrl=item.coverUrl;stored.description=item.description;stored.genres=[...item.genres];stored.region=item.region;stored.language=item.language;stored.licenseName=item.license.name;stored.catalogUpdatedAt=item.updatedAt
+    await this.saveIndex(index)
+    return stored
   }
 
   async repairLibrary():Promise<{added:number;removed:number;quarantined:number}>{
@@ -244,5 +269,7 @@ function safeZipPath(path:string):boolean{
 }
 
 function romPath(romId:string):string{return`${romRoot}/${romId.slice(0,2)}/${romId.slice(2,4)}/${romId}.gba`}
+
+function safeFileName(value:string):string{return value.replace(/[\\/:*?"<>|]/g,'_').trim().slice(0,80)||'authorized-rom'}
 
 function hexBytes(hex:string):Uint8Array{const result=new Uint8Array(hex.length/2);for(let index=0;index<result.length;index++)result[index]=Number.parseInt(hex.slice(index*2,index*2+2),16);return result}

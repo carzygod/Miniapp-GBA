@@ -8,9 +8,10 @@ import {AudioOutput} from '../emulator/audio-output'
 import {syncService} from '../cloud/sync-service'
 import {clockMovedBackwards,recordDiagnosticError,recordRuntimeDiagnostics} from '../diagnostics'
 import {loadSettings} from '../settings'
-import {libraryRepository,saveRepository} from '../services'
+import {libraryRepository,playHistoryRepository,saveRepository} from '../services'
 import {dataRoot,readBytes,writeBytesAtomic} from '../platform/fs'
-import type {GameEntry,SaveKind} from '../domain/models'
+import type {GameEntry,PlaySessionExitReason,SaveKind} from '../domain/models'
+import {PlaySessionTracker} from '../storage/play-session-tracker'
 import './index.scss'
 
 type Phase='loading'|'ready'|'running'|'paused'|'error'
@@ -35,7 +36,7 @@ export default function PlayerPage(){
   const destroyedRef=useRef(false)
   const inputRef=useRef(new InputBitmap())
   const audioRef=useRef(new AudioOutput({volume:settings.volume/100,mode:settings.audioBufferMode}))
-  const startTimeRef=useRef(Date.now())
+  const playSessionRef=useRef(new PlaySessionTracker(romId))
   const lastGeneration=useRef(0n)
   const saveTimer=useRef<ReturnType<typeof setTimeout>>()
   const lastAutoStateAt=useRef(Date.now())
@@ -45,6 +46,15 @@ export default function PlayerPage(){
   const clockWarningShown=useRef(false)
 
   const clearInput=useCallback(()=>{inputRef.current.clear();coreRef.current?.setKeyMask(0)},[])
+
+  const startPlayTracking=useCallback(()=>playSessionRef.current.start(),[])
+
+  const checkpointPlay=useCallback(async(reason:PlaySessionExitReason)=>{
+    const entry=gameRef.current,checkpoint=playSessionRef.current.checkpoint(reason)
+    if(!entry||!checkpoint)return
+    await playHistoryRepository.upsert(checkpoint.session)
+    if(checkpoint.deltaSeconds>0)await libraryRepository.markPlayed(entry.romId,checkpoint.deltaSeconds)
+  },[])
 
   const flushBattery=useCallback(async()=>{
     const core=coreRef.current,entry=gameRef.current
@@ -120,12 +130,12 @@ export default function PlayerPage(){
         runningRef.current=false;clearInput();audioRef.current.pause().catch(()=>undefined)
         recordDiagnosticError('CORE_RUNTIME',error)
         setMessage(`CORE_RUNTIME: ${error instanceof Error?error.message:String(error)}`);setPhase('error')
-        flushBattery().catch(()=>undefined)
+        flushBattery().catch(()=>undefined);checkpointPlay('error').catch(()=>undefined)
       }
       animationRef.current=canvas.requestAnimationFrame(tick)
     }
     animationRef.current=canvas.requestAnimationFrame(tick)
-  },[clearInput,commitAutoState,flushBattery,present,scheduleSave])
+  },[checkpointPlay,clearInput,commitAutoState,flushBattery,present,scheduleSave])
 
   useEffect(()=>{
     let cancelled=false
@@ -153,14 +163,14 @@ export default function PlayerPage(){
     return()=>{cancelled=true}
   },[romId,settings.autoState,startLoop])
 
-  const begin=async()=>{if(settings.sound&&settings.fastForward===1)await audioRef.current.start().catch(()=>false);runningRef.current=true;startTimeRef.current=Date.now();setPhase('running')}
+  const begin=async()=>{if(settings.sound&&settings.fastForward===1)await audioRef.current.start().catch(()=>false);startPlayTracking();runningRef.current=true;setPhase('running')}
   const togglePause=async()=>{
-    if(runningRef.current){runningRef.current=false;clearInput();await audioRef.current.pause();setPhase('paused')}
-    else{if(settings.sound&&settings.fastForward===1)await audioRef.current.start().catch(()=>false);runningRef.current=true;setPhase('running')}
+    if(runningRef.current){runningRef.current=false;clearInput();await audioRef.current.pause();await checkpointPlay('paused');setPhase('paused')}
+    else{if(settings.sound&&settings.fastForward===1)await audioRef.current.start().catch(()=>false);startPlayTracking();runningRef.current=true;setPhase('running')}
   }
   const updateInput=(source:string,mask:number)=>coreRef.current?.setKeyMask(inputRef.current.update(source,mask))
 
-  const pauseForMenu=async()=>{runningRef.current=false;clearInput();await audioRef.current.pause();setPhase(current=>current==='running'?'paused':current)}
+  const pauseForMenu=async()=>{runningRef.current=false;clearInput();await audioRef.current.pause();await checkpointPlay('paused');setPhase(current=>current==='running'?'paused':current)}
   const chooseSlot=async():Promise<string|undefined>=>{
     await pauseForMenu()
     try{const result=await Taro.showActionSheet({itemList:['槽位 1','槽位 2','槽位 3','槽位 4','槽位 5']});return String(result.tapIndex)}catch{return undefined}
@@ -174,7 +184,7 @@ export default function PlayerPage(){
     try{core.loadState(stored.bytes)}catch(error){core.loadState(backup);throw error}
     runningRef.current=wasRunning;setPhase(wasRunning?'running':'paused');Taro.showToast({title:'状态已载入',icon:'success'})
   }
-  const reset=async()=>{const confirmed=await Taro.showModal({title:'软复位',content:'将重启当前游戏，已写入的电池存档不会删除。'});if(confirmed.confirm){runningRef.current=false;clearInput();coreRef.current?.reset();setPhase('paused')}}
+  const reset=async()=>{const confirmed=await Taro.showModal({title:'软复位',content:'将重启当前游戏，已写入的电池存档不会删除。'});if(confirmed.confirm){runningRef.current=false;clearInput();await audioRef.current.pause();await checkpointPlay('paused');coreRef.current?.reset();setPhase('paused')}}
   const screenshot=async()=>{
     const entry=gameRef.current;if(!entry)throw new Error('游戏尚未就绪')
     const result=await captureCanvas()
@@ -185,16 +195,16 @@ export default function PlayerPage(){
   }
   const captureCanvas=async()=>{const canvas=canvasRef.current;if(!canvas)throw new Error('画布尚未就绪');return Taro.canvasToTempFilePath({canvas:canvas as unknown as NonNullable<Parameters<typeof Taro.canvasToTempFilePath>[0]['canvas']>,fileType:'png',destWidth:720,destHeight:480})}
 
-  const persistForBackground=useCallback(async()=>{runningRef.current=false;clearInput();setPhase(current=>current==='running'?'paused':current);await audioRef.current.pause();await flushBattery();await commitAutoState()},[clearInput,commitAutoState,flushBattery])
+  const persistForBackground=useCallback(async()=>{runningRef.current=false;clearInput();setPhase(current=>current==='running'?'paused':current);await audioRef.current.pause();await flushBattery();await commitAutoState();await checkpointPlay('background')},[checkpointPlay,clearInput,commitAutoState,flushBattery])
   const shutdown=useCallback(async()=>{
     if(destroyedRef.current)return
     runningRef.current=false;clearInput();if(saveTimer.current)clearTimeout(saveTimer.current)
-    await flushBattery().catch(()=>undefined);await commitAutoState().catch(()=>undefined)
-    const entry=gameRef.current;if(entry)await libraryRepository.markPlayed(entry.romId,(Date.now()-startTimeRef.current)/1000)
+    await flushBattery().catch(()=>undefined);await commitAutoState().catch(()=>undefined);await checkpointPlay('exit').catch(()=>undefined)
+    const entry=gameRef.current
     if(entry)clockMovedBackwards(entry.romId)
     await audioRef.current.stop();const canvas=canvasRef.current;if(canvas&&animationRef.current)canvas.cancelAnimationFrame(animationRef.current)
     coreRef.current?.destroy();coreRef.current=undefined;destroyedRef.current=true
-  },[clearInput,commitAutoState,flushBattery])
+  },[checkpointPlay,clearInput,commitAutoState,flushBattery])
 
   useDidHide(()=>{persistForBackground().catch(()=>undefined)})
   useUnload(()=>{shutdown().catch(()=>undefined)})
