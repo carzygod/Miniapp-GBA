@@ -27,28 +27,24 @@
 
 ## 3. 本地目录布局
 
-根目录使用微信 `USER_DATA_PATH/minigba-v1`，不得依赖临时路径长期存在。
+根目录使用微信 `USER_DATA_PATH/minigba`，不得依赖临时路径长期存在。
 
 ```text
-minigba-v1/
-  index/
-    library.json
-    settings.json
-    sync-queue.json
+minigba/
+  library.json
+  play-history.json
+  settings/<account-scope>.json
+  sync/<account-scope>/queue.json
   roms/
     ab/cd/<romId>.gba
   saves/
     <romId>/
-      battery.sav
-      battery.sav.prev
-      battery.sav.tmp
-      battery.manifest.json
-      states/
-        slot-0.state
-        slot-1.state
-        auto.state
-      previews/
-        slot-0.png
+      battery/current/current.bin
+      battery/current/manifest.json
+      state/<slot>/current.bin
+      state/<slot>/manifest.json
+      state/<slot>/preview.png
+      auto_state/auto/current.bin
   screenshots/
     <romId>/<timestamp>-<random>.png
   quarantine/
@@ -132,6 +128,53 @@ ZIP 是 P1，必须执行：
 - 拒绝绝对路径、`..`、符号链接和非普通文件。
 - 只允许一个候选 `.gba`；多个候选要求用户选择，不自动猜测。
 - 解压到应用 `tmp`，校验完成后再提交正式 ROM。
+
+### 5.4 R2 ROM 目录与下载
+
+R2 公共域名只暴露不可变 ROM、封面和一个小型目录 manifest。客户端不调用 S3 ListObjects，不包含 access key，也不从对象名猜测 SHA-256、大小或授权状态。
+
+```text
+catalog/v1/roms.json
+roms/<romId>.gba
+covers/<romId>.<content-hash>.webp
+```
+
+客户端处理顺序：
+
+1. 校验 `TARO_APP_ROM_CATALOG_URL` 使用 HTTPS 且 host 在 `TARO_APP_ROM_DOWNLOAD_HOSTS`。
+2. 获取 JSON 后一次性验证 schema、生成时间、bucket、最多 500 项和每项分发许可。
+3. 将相对对象 URL 基于 manifest URL 解析，再次检查 HTTPS、无凭证、无 fragment 和 host allowlist。
+4. 仅缓存完整通过验证的目录；新目录失败时保留旧缓存并标为 stale。
+5. 用户选择条目后通过 `downloadFile` 下载，验证 HTTP 200、声明长度、落盘长度、SHA-256 和 GBA Header。
+6. 使用 ROM ID 分片路径原子提交，更新本地 catalog 元数据；失败时不创建半成品索引。
+
+ROM 对象使用内容寻址和长期 immutable cache；`roms.json` 使用短缓存并可原子替换。完整字段和发布步骤见 `12-r2-rom-catalog.md`。
+
+### 5.5 游玩记录
+
+`play-history.json`：
+
+```json
+{
+  "schemaVersion": 1,
+  "sessions": [
+    {
+      "id": "123e4567-e89b-42d3-a456-426614174000",
+      "romId": "64-char-sha256",
+      "startedAt": "2026-08-01T12:00:00.000Z",
+      "endedAt": "2026-08-01T12:23:45.000Z",
+      "durationSeconds": 1280,
+      "exitReason": "background"
+    }
+  ]
+}
+```
+
+- 最多保留按结束时间倒序的 500 项。
+- 同一 session ID 的暂停/后台 checkpoint 使用 upsert，不追加重复记录。
+- 累计时长只增加相对上次 checkpoint 的差值，暂停和后台驻留不计时。
+- 当前索引损坏时优先读取 `.previous`；两者均无效时回退为空历史，不扫描或删除 ROM、存档。
+- 会话明细、游戏累计时长、ROM 和存档分别删除，避免一个管理动作隐式擦除其他数据。
 
 ## 6. 电池存档格式
 
@@ -465,4 +508,3 @@ CREATE TABLE idempotency_keys (
 - 服务端迁移使用版本化 SQL，部署新 API 前先执行向后兼容迁移。
 - 删除列或收紧约束至少跨两个发布版本执行：先双写/回填，再停止读取，最后清理。
 - 核心 build ID 更新不自动转换状态存档；电池存档继续兼容时需有回归测试证明。
-

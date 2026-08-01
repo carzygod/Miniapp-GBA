@@ -1,6 +1,7 @@
 export default defineAppConfig({
   pages: [
     'pages/library/index',
+    'pages/game/index',
     'pages/saves/index',
     'pages/settings/index',
     'pages/storage/index',
@@ -22,7 +23,7 @@ export default defineAppConfig({
     backgroundColor: '#141a1b',
     borderStyle: 'black',
     list: [
-      { pagePath: 'pages/library/index', text: '游戏库' },
+      { pagePath: 'pages/library/index', text: '游玩' },
       { pagePath: 'pages/saves/index', text: '存档' },
       { pagePath: 'pages/settings/index', text: '设置' },
     ],

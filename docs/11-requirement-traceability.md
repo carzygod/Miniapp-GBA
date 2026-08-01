@@ -1,7 +1,7 @@
 # 需求实现与验收追踪矩阵
 
 版本：1.0  
-盘点日期：2026-07-28  
+盘点日期：2026-08-01
 基线：`01-product-requirements.md`、三个独立仓库当前工作树
 
 ## 1. 状态定义
@@ -35,6 +35,11 @@
 | FR-ROM-008 | 已实现/待环境验收 | 递归重扫、恢复孤儿、移除丢失索引、SHA 校验、损坏文件隔离 | E4 微信文件系统批量回归 |
 | FR-ROM-009 | 自动验证 | fflate 单 ROM ZIP；条目数、路径、总大小、压缩比和多 ROM 限制；Vitest 覆盖合法/恶意包 | 大 ZIP 真机内存测试 |
 | FR-ROM-010 | P2 延期 | 未实现 IPS/UPS/BPS，符合首版范围 | 后续版本另立设计 |
+| FR-ROM-011 | 已实现/待环境验收 | `RomCatalogClient` 从构建时 URL 读取 R2 manifest，15 分钟缓存并在失败时保留 stale 缓存；首页本地数据独立加载 | E9 真实 R2 URL 与断网回归 |
+| FR-ROM-012 | 自动验证 | schema、时间、500 项上限、唯一 SHA-256、长度、HTTPS、精确 host 和许可全量校验；Vitest 与发布脚本覆盖 | E6 权利证据人工审核 |
+| FR-ROM-013 | 已实现/待环境验收 | `importCatalogItem` 校验 HTTP 200、响应/文件长度、SHA-256、Header 后才原子入库 | E4/E9 真机 R2 下载 |
+| FR-ROM-014 | 已实现/待环境验收 | 首页广场支持搜索、分类、精选排序、缓存标识、刷新、安装状态和下载进度 | E4 长文本/弱网视觉走查 |
+| FR-ROM-015 | 已实现/待环境验收 | `pages/game` 汇总下载/启动、许可、ROM 身份、累计时长、会话和存档；删除默认保留存档/记录 | E4 详情管理全流程 |
 
 ## 3. 模拟、视频、音频与控制
 
@@ -88,7 +93,7 @@
 | FR-STATE-005 | 已实现/待环境验收 | 默认每 60 秒和 hide 创建 auto state，可关闭 | E4 计时/后台测试 |
 | FR-STATE-006 | 已实现/待环境验收 | 保存后独立生成 PNG preview，失败只进诊断；列表显示预览 | E4 Canvas 临时文件权限 |
 
-## 5. 云同步、设置与诊断
+## 5. 云同步、设置、诊断与游玩记录
 
 | 需求 | 状态 | 实现与自动证据 | 剩余验收 |
 | --- | --- | --- | --- |
@@ -108,6 +113,10 @@
 | FR-SET-004 | 自动验证 | 缓存只清 temp/export；截图/隔离独立清理；危险删除二次确认 | E4 磁盘不足和误删回归 |
 | FR-DIAG-001 | 已实现/待环境验收 | 诊断页显示 App/基础库/设备/Core/FPS/P95/音频计数/最近错误 | E4 真实指标校准 |
 | FR-DIAG-002 | 自动验证 | 诊断包限长并脱敏 token、UUID、wx/file 路径和哈希；Vitest 覆盖 | 安全人工复核样本 |
+| FR-HIST-001 | 自动验证 | 播放器创建 UUID 会话并写 ROM ID、起止时间、真实运行秒数和结束原因；repository 校验结构 | E4 生命周期真机时间比对 |
+| FR-HIST-002 | 自动验证 | pause/background/error/exit 统一 checkpoint；同一 ID upsert，只把未计入秒数增量写入累计时长 | E4 后台与音频中断矩阵 |
+| FR-HIST-003 | 自动验证 | `PlayHistoryRepository` 原子保存、current 损坏恢复 previous、双损坏回退、最多 500 项；Vitest 覆盖 upsert/损坏/按 ROM 清理 | 500 项边界测试 |
+| FR-HIST-004 | 已实现/待环境验收 | 首页和详情页提供全局/单 ROM 列表、逐条删除和清空，动作不调用 ROM/存档删除 | E4 破坏性操作走查 |
 
 ## 6. 非功能需求
 
@@ -125,7 +134,7 @@
 | NFR-SEC-001 | 已实现/待环境验收 | App release 拒绝非 HTTPS；Nginx TLS 配置 | E8 有效域名/证书/高端口 |
 | NFR-SEC-002 | 自动验证 | token 仅 header/storage；API 日志 route 去标识；诊断脱敏测试 | E3/E8 日志抽检 |
 | NFR-SEC-003 | 自动验证 | 鉴权 user scope、客户端 UUID 队列隔离、key 格式、大小、SHA、内容寻址路径和配额 | E2 IDOR/配额集成测试 |
-| NFR-SEC-004 | 自动验证 | API 无 ROM endpoint，上传 key 只允许 save kind；App 默认 ROM 本地 | OpenAPI 人工复核 |
+| NFR-SEC-004 | 已实现/待环境验收 | API 不接收用户 ROM；App 只下载运营方 R2 manifest 中有许可且 hash/长度通过的对象，用户私有 ROM 保持本地 | E6/E9 目录权利与对象审计 |
 | NFR-SEC-005 | 已实现/待环境验收 | 删除 job 可重试、可查询、完成审计、延迟 blob GC | E2 完整删除演练 |
 | NFR-MNT-001 | 自动验证 | `minigba-core`、`minigba-app`、`minigba-api` 为三个独立 Git 仓库 | 发布 commit 记录 |
 | NFR-MNT-002 | 自动验证 | ABI 1 显式导出；WASM 检查禁止 pthread/SDL/DOM/IDBFS 私有依赖 | E1 Ubuntu 重建 |
@@ -144,9 +153,10 @@
 | E6 | 上线主体、地区和类目对应的法律/平台审核 | 隐私政策、用户协议、ROM 权利、许可证和审核结论 |
 | E7 | 生产或等价环境的持续观测周期 | 月度 API 可用性 >=99.9% 的 SLI 报告 |
 | E8 | 合规裸机、域名、证书、空闲高端口和备份目标 | 部署/回滚/恢复 smoke、最终 URL 和监控告警 |
+| E9 | Cloudflare R2 `rom` 桶真实自定义域名、Public access、对象清单及微信 download/request 合法域名 | Dashboard 双人复核、远程 manifest 校验、对象 SHA-256、iOS/Android 下载和下架回滚证据 |
 
 ## 8. 当前阻塞结论
 
 已提供的 `192.168.31.26` 是 Ubuntu 22.04.5，但宿主被识别为 VMware，且存在高磁盘/Swap 占用和既有容器服务。项目约束禁止虚拟化，因此未对该机器做安装、迁移、服务配置或端口占用。它不能作为 E1、E2 或 E8 的完成证据，也不能产生合规可访问地址。
 
-正式发布判定仍遵循：所有 P0 已实现不等于已验收；E1-E6 和 E8 未完成时禁止对外发布，E7 在上线后持续度量。
+正式发布判定仍遵循：所有 P0 已实现不等于已验收；E1-E6、E8 和 E9 未完成时禁止对外发布，E7 在上线后持续度量。

@@ -72,6 +72,13 @@ describe('authorized HTTPS import',()=>{
     state.memory.set(temporary,rom);state.downloadFile.mockResolvedValue({statusCode:200,tempFilePath:temporary,dataLength:rom.length})
     await expect(repository.importAuthorizedDownload('https://roms.test.invalid/game.gba','0'.repeat(64),rom.length)).rejects.toThrow('SHA-256')
   })
+
+  it('stores validated R2 catalog metadata with the local ROM',async()=>{
+    const rom=fixture(),romId=sha256Hex(rom),temporary='/tmp/catalog.gba'
+    state.memory.set(temporary,rom);state.downloadFile.mockResolvedValue({statusCode:200,tempFilePath:temporary,dataLength:rom.length})
+    const entry=await new LibraryRepository().importCatalogItem({romId,title:'Catalog Title',gameCode:'CAT1',downloadUrl:'https://roms.test.invalid/roms/catalog.gba',sizeBytes:rom.length,description:'Authorized catalog entry',genres:['Homebrew'],region:'World',language:'中文',coverUrl:'https://roms.test.invalid/covers/catalog.webp',featured:true,updatedAt:'2026-08-01T00:00:00.000Z',license:{name:'CC BY 4.0'}})
+    expect(entry).toMatchObject({romId,title:'Catalog Title',gameCode:'CAT1',source:'r2-catalog',description:'Authorized catalog entry',genres:['Homebrew'],licenseName:'CC BY 4.0'})
+  })
 })
 
 describe('library repair',()=>{

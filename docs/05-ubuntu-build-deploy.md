@@ -255,9 +255,11 @@ export PATH=/opt/minigba/toolchains/node/bin:$PATH
 cd /srv/build/minigba-app
 install -m 0644 /srv/build/minigba-core/dist/minigba-core.wasm src/assets/minigba-core.wasm
 export TARO_APP_API_BASE_URL=https://api.example.com:38443
+export TARO_APP_ROM_CATALOG_URL=https://authorized-roms.example.com/catalog/v1/roms.json
 export TARO_APP_ROM_DOWNLOAD_HOSTS=authorized-roms.example.com
 npm run lint
 npm run test
+npm run validate:catalog -- "$TARO_APP_ROM_CATALOG_URL"
 npm run build:weapp
 ```
 

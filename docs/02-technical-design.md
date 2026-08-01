@@ -59,6 +59,8 @@ flowchart TB
         Audio["AudioAdapter"]
         Input["InputAdapter"]
         Local["LocalRepository"]
+        Catalog["RomCatalogClient"]
+        History["PlayHistoryRepository"]
         Sync["SyncQueue"]
         Pages --> Store
         Pages --> EmuService
@@ -67,6 +69,8 @@ flowchart TB
         EmuService --> Audio
         Input --> EmuService
         EmuService --> Local
+        Pages --> Catalog
+        EmuService --> History
         Local --> Sync
     end
 
@@ -81,6 +85,7 @@ flowchart TB
     end
 
     Sync -->|"HTTPS JSON / binary"| Nginx
+    Catalog -->|"HTTPS manifest / ROM / cover"| R2["Cloudflare R2 public custom domain"]
     API -->|"微信登录凭证校验"| WeChat["微信服务端接口"]
 ```
 
@@ -91,10 +96,11 @@ flowchart TB
 ```text
 minigba-app/                     # Taro/React 微信小程序仓库
   config/
-  src/pages/                    # 主包：游戏库、存档、设置
+  src/pages/                    # 主包：游玩中心、游戏详情、存档、设置
   src/player/                   # 播放器分包
+  src/catalog/                  # R2 manifest 获取、缓存和不可信输入校验
   src/emulator/                 # WXWebAssembly ABI、音频和输入
-  src/storage/                  # ROM、本地存档和同步队列
+  src/storage/                  # ROM、游玩记录、本地存档和同步队列
   src/cloud/                    # API、历史和冲突处理
   src/assets/                   # 固定 WASM 与来源清单
   scripts/
@@ -150,7 +156,26 @@ minigba-api/                     # Go 云存档服务仓库
 - 将正式文件写入用户数据目录并更新索引。
 - 维护引用计数，补丁派生 ROM 不重复保留可重建内容时应明确策略。
 
-### 5.3 EmulatorService
+### 5.3 RomCatalogClient
+
+职责：
+
+- 从 `TARO_APP_ROM_CATALOG_URL` 获取 R2 上的只读 JSON manifest，不持有 R2 S3 凭证。
+- 对 manifest 版本、生成时间、条目上限、唯一 ROM SHA-256、精确长度、HTTPS URL、host allowlist 和分发许可做全量校验。
+- 允许下载和封面 URL 相对 manifest 解析，但解析后的 host 仍必须命中发布白名单。
+- 将最后一次完整通过校验的目录缓存 15 分钟；网络失败可显示已验证缓存，并在 UI 标记为缓存目录。
+- manifest 任一条目失败时拒绝整个新目录，不以“尽量展示”方式混入不可信或无授权条目。
+
+R2 只承载运营方授权目录和对象，不承担用户 ROM 上传。用户本地导入内容不会反向写入 R2。
+
+### 5.4 PlayHistoryRepository
+
+- `play-history.json` 以 ROM ID 保存最近 500 次会话。
+- 播放器只在核心真正运行时累计秒数；暂停、后台和错误会 checkpoint 同一会话。
+- checkpoint 使用同一 session ID 原子 upsert，并只把相对上次 checkpoint 的增量写入游戏累计时长。
+- 删除记录只影响会话明细；ROM、存档和累计时长使用独立生命周期。
+
+### 5.5 EmulatorService
 
 `EmulatorService` 是唯一允许驱动核心生命周期的模块。
 
@@ -188,7 +213,7 @@ export interface EmulatorService {
 - 同一时间只允许一个核心实例和一个已加载 ROM。
 - `flushBatterySave`、`createState` 和 `loadState` 按 ROM 串行执行。
 
-### 5.4 FrameScheduler
+### 5.6 FrameScheduler
 
 - 以 Canvas 节点提供的帧回调为首选调度时钟，缺失时使用单调时钟补偿调度。
 - GBA 目标频率按核心定义，不硬编码为整数 60。
@@ -197,7 +222,7 @@ export interface EmulatorService {
 - 页面隐藏、菜单打开、错误和状态存取期间停止调度。
 - 每 5 秒聚合帧时间，不逐帧写日志。
 
-### 5.5 CanvasAdapter
+### 5.7 CanvasAdapter
 
 - 获取 Taro Canvas 的原生节点和 2D/WebGL Context。
 - 核心永远输出固定尺寸像素缓冲；Canvas 负责缩放。
@@ -206,7 +231,7 @@ export interface EmulatorService {
 - 页面布局变化只调整显示尺寸，不改变核心 framebuffer 尺寸。
 - Canvas 失败时暂停核心并返回可诊断错误。
 
-### 5.6 AudioAdapter
+### 5.8 AudioAdapter
 
 - 用户第一次在播放器页面触摸后创建 WebAudioContext。
 - 从核心 PCM 环形缓冲拉取样本，不让核心调用平台音频 API。
@@ -214,7 +239,7 @@ export interface EmulatorService {
 - 欠载时填充静音并累计指标；溢出时丢弃最旧样本。
 - 切后台先暂停核心，再 suspend 音频；恢复顺序相反。
 
-### 5.7 InputAdapter
+### 5.9 InputAdapter
 
 - 使用 `touch.identifier` 跟踪每个触点。
 - 将触点命中结果归约成 10 位 GBA 键位图。
@@ -222,14 +247,14 @@ export interface EmulatorService {
 - 不通过 React state 传递高频移动事件；React state 只负责视觉按下样式。
 - `touchcancel`、`onHide`、暂停和组件卸载都调用 `releaseAll()`。
 
-### 5.8 SaveRepository
+### 5.10 SaveRepository
 
 - 提供事务式写入和 manifest 更新。
 - 电池存档、状态存档和截图使用不同目录及配额。
 - 读取失败时按 `current -> previous -> cloud` 顺序尝试恢复。
 - 所有返回值包含 checksum，不允许调用方跳过验证。
 
-### 5.9 SyncQueue
+### 5.11 SyncQueue
 
 - 任务持久化到本地小型 JSON 日志或索引，不能只存在内存。
 - 任务键为 `romId + kind + slot`，新任务合并旧的未发送任务。
@@ -350,6 +375,8 @@ type BlobStore interface {
 ### 9.1 小程序编译配置
 
 - `TARO_APP_API_BASE_URL`
+- `TARO_APP_ROM_CATALOG_URL`
+- `TARO_APP_ROM_DOWNLOAD_HOSTS`
 - `MINIGBA_ENV`: `development | staging | production`
 - `MINIGBA_CORE_BUILD_ID`
 - `MINIGBA_ENABLE_STATE_CLOUD_SYNC`

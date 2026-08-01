@@ -5,7 +5,7 @@
 | 仓库 | 初始提交 | 当前 HEAD | 输入 | 发布产物 |
 | --- | --- | --- | --- | --- |
 | `minigba-core` | `58bb57e` | `5045490add4e9691d1c005aeb84c9886d2489536` | mGBA `26b7884bc25a5933960f3cdcd98bac1ae14d42e2`、emsdk 6.0.4 | `minigba-core.wasm`、SHA-256、ABI/build ID、SBOM、许可证 |
-| `minigba-app` | `7284856` | `8cecf695177698b5f2b2cd1781a980c7c27407d3` | Core WASM + manifest、API base URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、上传记录 |
+| `minigba-app` | `7284856` | `2827998a5dffc5be3ac244dedea5b72138128f49` | Core WASM + manifest、API base URL、R2 ROM manifest URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、R2 目录校验、上传记录 |
 | `minigba-api` | `07f4b73` | `3775df99bbb53cf2df4c71fd23dea0a419374832` | Go 1.26.5、PostgreSQL 14+、微信凭证 | Linux amd64 release tar、SHA-256、OpenAPI、SBOM、许可证 |
 
 每个目录都是独立 Git repository。不得把三者改回 npm workspace、Git subtree 或单仓库隐式相对依赖。根目录 `docs/` 是交付基线，不参与任一运行时依赖。
@@ -36,7 +36,8 @@
 ## 4. API 到 App 的交接
 
 - `minigba-api/api/openapi.yaml` 是网络契约源。
-- App 仅通过 `TARO_APP_API_BASE_URL` 注入 HTTPS origin，通过 `TARO_APP_ROM_DOWNLOAD_HOSTS` 注入授权下载 host allowlist；源码不得写死生产地址。
+- App 仅通过 `TARO_APP_API_BASE_URL` 注入 HTTPS origin，通过 `TARO_APP_ROM_CATALOG_URL` 注入 R2 manifest，通过 `TARO_APP_ROM_DOWNLOAD_HOSTS` 注入授权下载 host allowlist；源码不得写死生产地址。
+- R2 manifest 是 App 的独立发布输入；正式构建必须远程验证 schema、ROM SHA-256/长度、URL host 和分发许可，目录失败必须阻断候选发布。
 - staging 先完成登录、上传、历史、409 冲突、删除与账号删除往返，再生成候选小程序。
 - 微信 request 合法域名必须是备案/审核允许的 HTTPS 域名；IP + HTTP 高端口只用于宿主 smoke test。
 
@@ -44,10 +45,11 @@
 
 1. Core 候选与许可证检查。
 2. API 向后兼容发布、迁移、readiness 和备份检查。
-3. App 嵌入 Core 候选，执行测试、构建和真机矩阵。
-4. `miniprogram-ci` 上传体验版，记录 App commit、Core commit、API commit 和三方摘要。
-5. 双设备冲突、后台恢复、强杀恢复和账号删除验收通过后提交微信审核。
-6. 灰度观察稳定后正式发布；失败按各仓库独立回滚，不回写历史产物。
+3. R2 先上传内容寻址 ROM/封面，远程验证对象，再发布并记录 manifest 摘要和权利审核版本。
+4. App 嵌入 Core 候选与已验证 R2 manifest，执行测试、构建和真机矩阵。
+5. `miniprogram-ci` 上传体验版，记录 App commit、Core commit、API commit、R2 manifest 和四方摘要。
+6. 双设备冲突、后台恢复、强杀恢复和账号删除验收通过后提交微信审核。
+7. 灰度观察稳定后正式发布；失败按各仓库独立回滚，R2 使用上一已验证 manifest 回滚，不回写历史产物。
 
 App 候选构建必须在 `project.config.json` 中固定已验证的微信基础库版本，并校验该字段进入 `dist/project.config.json`。本候选固定为 `3.16.1`；不得依赖开发者工具自动选择最新基础库，因为不完整的基础库缓存会在业务代码执行前表现为模拟器 HTTP 500。
 
@@ -55,5 +57,5 @@ App 候选构建必须在 `project.config.json` 中固定已验证的微信基�
 
 - 三个仓库发布时必须 `git status --porcelain` 无输出。
 - release 只能引用完整 commit，不引用浮动 branch。
-- 微信 AppSecret、上传私钥、token signing key、数据库备份密钥不得进入 Git。
+- 微信 AppSecret、上传私钥、token signing key、数据库备份密钥、R2 access key/API token 不得进入 Git。
 - Core 仓库的 mGBA 必须显示为 mode `160000` gitlink，且 `git submodule status` 与 manifest 一致。

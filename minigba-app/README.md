@@ -1,6 +1,6 @@
 # MiniGBA App
 
-MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini program. It provides the game library, emulator player, virtual controls, local saves, save states, cloud synchronization, storage management, and privacy controls.
+MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini program. It provides a Cloudflare R2-backed authorized ROM catalog, local library, per-session play history, game details, emulator player, virtual controls, local saves, save states, cloud synchronization, storage management, and privacy controls.
 
 ## Target
 
@@ -12,7 +12,7 @@ MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini p
 ## Product boundaries
 
 - Users import ROMs they are legally allowed to use.
-- The app does not bundle, list, search, upload, or distribute commercial ROMs.
+- The app never uploads user ROMs. The ROM plaza only lists operator-reviewed homebrew or other content with explicit redistribution rights in a signed-off R2 manifest.
 - ROM files remain local by default. Cloud synchronization stores save data only.
 - The app uses the separately versioned `minigba-core` WXWebAssembly artifact.
 
@@ -21,12 +21,14 @@ MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini p
 ```text
 config/                 Taro build configuration
 src/pages/library/      Local game library and ROM import
+src/pages/game/         Download/play actions, play history, save and ROM details
+src/catalog/            R2 manifest fetch, cache, URL and rights validation
 src/player/             Player subpackage, Canvas runtime, and controls
 src/pages/saves/        Local/cloud versions and conflicts
 src/pages/settings/     Display, audio, controls, storage, privacy
 src/components/         Reusable Taro components
 src/emulator/           WXWebAssembly ABI loader, input, and audio
-src/storage/            ROM index, atomic saves, and persistent sync queue
+src/storage/            ROM index, play history, atomic saves, and persistent sync queue
 src/cloud/              API client, history, conflicts, and synchronization
 src/platform/           WeChat filesystem adapter
 src/assets/             Pinned core binary and provenance manifest
@@ -64,12 +66,16 @@ The checked-in development WASM asset is provenance-pinned in `src/assets/minigb
 
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.invalid
+export TARO_APP_ROM_CATALOG_URL=https://roms.example.invalid/catalog/v1/roms.json
 export TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.invalid
 npm run typecheck
 npm run lint
 npm test
+npm run validate:catalog -- catalog.example.json
 npm run build:weapp
 ```
+
+The production release script validates the live catalog before building. Each entry must provide an exact ROM SHA-256, byte length, HTTPS download URL, and distribution license. The client validates the entire catalog, then validates downloaded bytes again before atomically adding a ROM to the local library. R2 credentials are never compiled into the mini program.
 
 For an approved AppID, CI private key, and already-built `dist`:
 
