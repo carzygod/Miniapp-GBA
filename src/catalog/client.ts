@@ -4,9 +4,9 @@ import {ROM_CATALOG_SCHEMA_VERSION,type RomCatalog,type RomCatalogItem} from '..
 const catalogUrl=typeof __MINIGBA_ROM_CATALOG_URL__==='string'?__MINIGBA_ROM_CATALOG_URL__.trim():''
 const configuredHosts=typeof __MINIGBA_ROM_DOWNLOAD_HOSTS__==='string'?__MINIGBA_ROM_DOWNLOAD_HOSTS__:''
 const authorizedHosts=new Set(configuredHosts.split(',').map(value=>value.trim().toLowerCase()).filter(Boolean))
-const cacheKey='minigba.romCatalog.v1'
+const cacheKey='minigba.romCatalog.v2'
 const cacheTtlMs=15*60*1000
-const maxCatalogItems=500
+const maxCatalogItems=2000
 const maxRomBytes=32*1024*1024
 
 interface CatalogCache{sourceUrl:string;fetchedAt:string;catalog:RomCatalog}
@@ -34,7 +34,7 @@ export class RomCatalogClient{
     }
   }
 
-  async find(romId:string):Promise<RomCatalogItem|undefined>{return(await this.list()).catalog.items.find(item=>item.romId===romId)}
+  async find(id:string):Promise<RomCatalogItem|undefined>{return(await this.list()).catalog.items.find(item=>item.id===id)}
 
   clearCache():void{Taro.removeStorageSync(cacheKey)}
 
@@ -53,27 +53,32 @@ export function parseRomCatalog(input:unknown,sourceUrl:string):RomCatalog{
   const bucket=shortText(value.bucket,64,'R2 bucket')
   if(bucket!=='rom')throw new Error('ROM 目录 bucket 必须是 rom')
   if(!Array.isArray(value.items)||value.items.length>maxCatalogItems)throw new Error('ROM 目录条目数量无效')
-  const seen=new Set<string>()
-  const items=value.items.map((candidate,index)=>parseItem(candidate,sourceUrl,index,seen))
+  const seenIds=new Set<string>(),seenObjectKeys=new Set<string>()
+  const items=value.items.map((candidate,index)=>parseItem(candidate,sourceUrl,index,seenIds,seenObjectKeys))
   return{schemaVersion:ROM_CATALOG_SCHEMA_VERSION,generatedAt:value.generatedAt as string,bucket,items}
 }
 
-function parseItem(input:unknown,sourceUrl:string,index:number,seen:Set<string>):RomCatalogItem{
+function parseItem(input:unknown,sourceUrl:string,index:number,seenIds:Set<string>,seenObjectKeys:Set<string>):RomCatalogItem{
   if(!input||typeof input!=='object')throw new Error(`ROM 目录第 ${index+1} 项无效`)
   const value=input as Record<string,unknown>
-  const romId=typeof value.romId==='string'?value.romId:''
-  if(!/^[0-9a-f]{64}$/.test(romId)||seen.has(romId))throw new Error(`ROM 目录第 ${index+1} 项的 SHA-256 无效或重复`)
-  seen.add(romId)
-  const title=shortText(value.title,80,'ROM 标题')
+  const id=typeof value.id==='string'?value.id.trim():''
+  if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(id)||seenIds.has(id))throw new Error(`ROM 目录第 ${index+1} 项的 ID 无效或重复`)
+  seenIds.add(id)
+  const title=shortText(value.title,128,'ROM 标题')
+  const objectKey=shortText(value.objectKey,400,'R2 对象键')
+  if(!validObjectKey(objectKey)||seenObjectKeys.has(objectKey))throw new Error(`${title} 的 R2 对象键无效或重复`)
+  seenObjectKeys.add(objectKey)
+  const etag=value.etag===undefined?undefined:shortText(value.etag,128,'R2 ETag')
   const gameCode=value.gameCode===undefined?undefined:shortText(value.gameCode,12,'游戏代码')
   const sizeBytes=Number(value.sizeBytes)
   if(!Number.isInteger(sizeBytes)||sizeBytes<0xc0||sizeBytes>maxRomBytes)throw new Error(`${title} 的 ROM 长度无效`)
   const downloadUrl=resolveAuthorizedUrl(value.downloadUrl,sourceUrl,`${title} 下载地址`)
+  if(decodedPath(downloadUrl)!==`/${objectKey}`)throw new Error(`${title} 的下载地址与 R2 对象键不一致`)
   const coverUrl=value.coverUrl===undefined?undefined:resolveAuthorizedUrl(value.coverUrl,sourceUrl,`${title} 封面地址`)
   const genres=parseTags(value.genres,title)
-  const license=parseLicense(value.license,title)
+  const license=value.license===undefined?undefined:parseLicense(value.license,title)
   return{
-    romId,title,gameCode,downloadUrl,sizeBytes,genres,license,coverUrl,
+    id,title,objectKey,etag,gameCode,downloadUrl,sizeBytes,genres,license,coverUrl,
     description:optionalText(value.description,240,'简介'),region:optionalText(value.region,24,'地区'),language:optionalText(value.language,32,'语言'),
     featured:value.featured===true,updatedAt:value.updatedAt===undefined?undefined:validDate(value.updatedAt)?value.updatedAt as string:invalid(`${title} 的更新时间无效`),
   }
@@ -114,6 +119,8 @@ function assertHttpsUrl(value:string,label:string):URL{
 
 function shortText(value:unknown,max:number,label:string):string{if(typeof value!=='string'||!value.trim()||value.trim().length>max)throw new Error(`${label}无效`);return value.trim()}
 function optionalText(value:unknown,max:number,label:string):string|undefined{return value===undefined?undefined:shortText(value,max,label)}
+function validObjectKey(value:string):boolean{const segments=value.split('/');return value.startsWith('gba/')&&value.toLowerCase().endsWith('.gba')&&!/[\\\0\r\n]/.test(value)&&segments.every(segment=>Boolean(segment)&&segment!=='.'&&segment!=='..')}
+function decodedPath(value:string):string{try{return decodeURIComponent(new URL(value).pathname)}catch{return''}}
 function validDate(value:unknown):boolean{return typeof value==='string'&&Number.isFinite(Date.parse(value))}
 function invalid(message:string):never{throw new Error(message)}
 

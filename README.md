@@ -1,6 +1,6 @@
 # MiniGBA App
 
-MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini program. It provides a Cloudflare R2-backed authorized ROM catalog, local library, per-session play history, game details, emulator player, virtual controls, local saves, save states, cloud synchronization, storage management, and privacy controls.
+MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini program. It provides a Cloudflare R2-backed ROM catalog, local library, per-session play history, game details, emulator player, virtual controls, local saves, save states, cloud synchronization, storage management, and privacy controls.
 
 ## Target
 
@@ -12,7 +12,7 @@ MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini p
 ## Product boundaries
 
 - Users import ROMs they are legally allowed to use.
-- The app never uploads user ROMs. The ROM plaza only lists operator-reviewed homebrew or other content with explicit redistribution rights in a signed-off R2 manifest.
+- The app never uploads user ROMs. Catalog license metadata is displayed when supplied; missing rights metadata is shown as unmarked and is not inferred from an R2 object name.
 - ROM files remain local by default. Cloud synchronization stores save data only.
 - The app uses the separately versioned `minigba-core` WXWebAssembly artifact.
 
@@ -22,7 +22,7 @@ MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini p
 config/                 Taro build configuration
 src/pages/library/      Local game library and ROM import
 src/pages/game/         Download/play actions, play history, save and ROM details
-src/catalog/            R2 manifest fetch, cache, URL and rights validation
+src/catalog/            R2 manifest fetch, cache, object metadata and URL validation
 src/player/             Player subpackage, Canvas runtime, and controls
 src/pages/saves/        Local/cloud versions and conflicts
 src/pages/settings/     Display, audio, controls, storage, privacy
@@ -66,8 +66,8 @@ The checked-in development WASM asset is provenance-pinned in `src/assets/minigb
 
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.invalid
-export TARO_APP_ROM_CATALOG_URL=https://roms.example.invalid/catalog/v1/roms.json
-export TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.invalid
+export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
 npm run typecheck
 npm run lint
 npm test
@@ -75,7 +75,7 @@ npm run validate:catalog -- catalog.example.json
 npm run build:weapp
 ```
 
-The production release script validates the live catalog before building. Each entry must provide an exact ROM SHA-256, byte length, HTTPS download URL, and distribution license. The client validates the entire catalog, then validates downloaded bytes again before atomically adding a ROM to the local library. R2 credentials are never compiled into the mini program.
+`catalog.r2.json` is generated from the authenticated R2 object listing and currently contains 981 `gba/` objects. `r2-objects.example.json` documents the generator input. Catalog schema v2 requires a stable catalog ID, exact object key, byte length and allowlisted HTTPS URL; it does not contain or validate a predeclared SHA-256. Downloads still require HTTP 200, matching response/file length and a valid GBA header before atomic import. A local content ID is calculated after import only for deduplication and save isolation. R2 credentials are never compiled into the mini program.
 
 For an approved AppID, CI private key, and already-built `dist`:
 

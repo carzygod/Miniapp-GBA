@@ -1,6 +1,6 @@
 export const LIBRARY_SCHEMA_VERSION = 2 as const
 export const SAVE_SCHEMA_VERSION = 1 as const
-export const ROM_CATALOG_SCHEMA_VERSION = 1 as const
+export const ROM_CATALOG_SCHEMA_VERSION = 2 as const
 export const PLAY_HISTORY_SCHEMA_VERSION = 1 as const
 
 export type CloudState = 'disabled' | 'pending' | 'synced' | 'conflict' | 'error'
@@ -25,6 +25,9 @@ export interface GameEntry {
   region?: string
   language?: string
   licenseName?: string
+  catalogId?: string
+  catalogObjectKey?: string
+  catalogEtag?: string
   catalogUpdatedAt?: string
   lastSyncedAt?: string
   syncError?: string
@@ -37,8 +40,10 @@ export interface RomCatalogLicense {
 }
 
 export interface RomCatalogItem {
-  romId: string
+  id: string
   title: string
+  objectKey: string
+  etag?: string
   gameCode?: string
   downloadUrl: string
   sizeBytes: number
@@ -49,7 +54,7 @@ export interface RomCatalogItem {
   coverUrl?: string
   featured: boolean
   updatedAt?: string
-  license: RomCatalogLicense
+  license?: RomCatalogLicense
 }
 
 export interface RomCatalog {

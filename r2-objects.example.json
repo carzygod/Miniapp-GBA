@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "result": [
+    {
+      "key": "gba/authorized-homebrew.gba",
+      "etag": "example-object-version",
+      "last_modified": "2026-08-02T00:00:00.000Z",
+      "size": 262144,
+      "http_metadata": {},
+      "custom_metadata": {},
+      "storage_class": "Standard"
+    }
+  ]
+}

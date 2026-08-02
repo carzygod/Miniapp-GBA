@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "lint": "eslint src --max-warnings 0",
     "validate:catalog": "node scripts/validate-rom-catalog.mjs",
+    "generate:catalog": "node scripts/generate-r2-rom-catalog.mjs",
     "audit:prod": "node scripts/audit-production.mjs",
     "report:dependencies": "node scripts/generate-sbom.mjs"
   },
