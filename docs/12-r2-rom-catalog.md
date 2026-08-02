@@ -1,231 +1,264 @@
 # Cloudflare R2 ROM 广场开发与发布文档
 
-版本：1.0
-状态：待接入真实 R2 域名与对象清单
-更新日期：2026-08-01
+版本：2.0
 
-## 1. 目标与边界
+状态：真实 R2 已核对；本地目录已生成，远端目录尚未上传
 
-ROM 广场允许小程序读取运营方在 Cloudflare R2 上发布的只读授权目录，并把用户选择的 ROM 下载到微信本地文件系统。R2 不保存用户私有 ROM、用户存档、微信身份或云同步数据。
+更新日期：2026-08-02
 
-该能力只适用于自研 homebrew、明确允许再分发的作品或运营方取得书面分发授权的 ROM。公开目录不是任意对象列表，也不能把“桶里已有文件”直接等同于“允许公开分发”。
+## 1. 本次确认结论
 
-## 2. 组件与信任边界
+2026-08-02 通过用户已登录的 Chrome 会话读取 Cloudflare Dashboard，并通过控制台自身的对象接口取得 `gba/` 完整列表。检查过程只读取对象元数据；对公开对象仅发送 `HEAD` 请求，没有下载 ROM 正文，也没有修改 R2 配置。
+
+| 项目 | 实际值 |
+| --- | --- |
+| Account ID | `aa1f1424bb0e9156ec75328626ea326b` |
+| Bucket | `rom` |
+| 创建时间 | 2025-07-25 |
+| 区域 | APAC |
+| Bucket 总大小 | Dashboard 显示 `9.74 GB` |
+| S3 API | `https://aa1f1424bb0e9156ec75328626ea326b.r2.cloudflarestorage.com/rom` |
+| 生产自定义域名 | `https://rom.sid.mom`，状态正常、公开访问已启用 |
+| R2.dev | `https://pub-af0f767c88c94b9cae263062533d7603.r2.dev`，仅适合开发检查 |
+| CORS | 未配置 |
+| R2 Data Catalog | 未启用 |
+| 默认存储类 | Standard |
+| Local upload | 未启用 |
+
+自定义域名根路径返回 `404 Object not found`，这是因为根对象不存在，不代表域名不可用。对一个现有 `gba/` 对象执行 `HEAD` 返回 `200`、正确 `Content-Length`、`ETag` 和 `Last-Modified`，证明对象可匿名读取。响应中没有 `Access-Control-Allow-Origin`。
+
+## 2. GBA 对象清单
+
+完整清单位于 `minigba-app/catalog.r2.json`，它是当前 981 个对象的逐项事实记录，可直接查看每个文件的：
+
+- 目录 ID；
+- 完整 R2 object key；
+- 原始文件名/展示标题；
+- 公开下载 URL；
+- 精确字节数；
+- R2 ETag；
+- 最后修改时间；
+- 从 No-Intro 风格文件名提取出的地区和语言信息。
+
+汇总：
+
+| 指标 | 结果 |
+| --- | --- |
+| 对象数 | 981 |
+| 总字节数 | `7,725,253,970` B（约 `7.195 GiB`） |
+| 扩展名 | 981 个均为 `.gba` |
+| 对象 key 重复 | 0 |
+| ETag 重复 | 0 |
+| 最早修改时间 | `2025-07-27T09:28:50.884Z` |
+| 最晚修改时间 | `2025-07-29T04:26:06.467Z` |
+| HTTP metadata | 981 个均为空 |
+| Custom metadata | 981 个均为空 |
+| 标记统计 | Beta 18、Prototype 6、Revision 13、Alt 2、多语言 205 |
+
+主要大小分布：
+
+| 字节数 | 对象数 |
+| ---: | ---: |
+| 4,194,304 | 418 |
+| 8,388,608 | 421 |
+| 16,777,216 | 113 |
+| 33,554,432 | 15 |
+| 其他大小 | 14 |
+
+14 个非主要容量对象必须保留精确 `sizeBytes`，不能向上取整：
+
+| Object key | 字节数 |
+| --- | ---: |
+| `gba/Bratz (USA) (En,Fr,Es).gba` | 3,538,944 |
+| `gba/Bratz - Babyz (USA).gba` | 3,407,872 |
+| `gba/Bratz - Forever Diamondz (USA).gba` | 1,179,648 |
+| `gba/CodeBreaker (USA) (Unl).gba` | 65,536 |
+| `gba/GBA Personal Organizer (USA) (Unl).gba` | 1,048,576 |
+| `gba/GP-1 Racing (USA) (Proto).gba` | 2,097,152 |
+| `gba/GameShark GBA (USA) (Alt 1) (Unl).gba` | 262,144 |
+| `gba/GameShark GBA (USA) (Unl).gba` | 262,144 |
+| `gba/Rocket Power - Beach Bandits (USA) (v0.14) (Beta).gba` | 4,101,616 |
+| `gba/SpongeBob SquarePants - Revenge of the Flying Dutchman (USA) (Beta).gba` | 8,166,400 |
+| `gba/SpongeBob SquarePants Movie, The (USA) (Beta).gba` | 6,871,418 |
+| `gba/Starsky & Hutch (USA) (Beta).gba` | 4,231,928 |
+| `gba/Tyrian 2000 (USA) (Proto).gba` | 2,681,544 |
+| `gba/Wild Thornberrys Movie, The (USA) (Beta).gba` | 3,374,120 |
+
+对象名不能证明 ROM 正文有效或拥有公开分发权。当前 R2 没有 MIME、封面、游戏代码、分类或权利元数据；这些字段需要运营方后续补录。
+
+## 3. 不做 SHA-256 前置校验的边界
+
+按当前要求，R2 目录 schema v2 不包含 ROM SHA-256，客户端不会要求用户输入 SHA-256，也不会把下载正文与预置 SHA-256 比对。
+
+仍保留以下检查：
+
+1. 目录和下载 URL 必须为无凭证、无 fragment 的 HTTPS。
+2. URL 的精确 `host[:port]` 必须命中编译期白名单。
+3. 目录 ID 与 object key 必须唯一；object key 必须位于 `gba/` 且以 `.gba` 结尾。
+4. `sizeBytes` 必须是 192 B 到 32 MiB 的整数。
+5. 下载必须返回 HTTP 200；响应长度和落盘文件长度必须与 `sizeBytes` 一致。
+6. 落盘后检查 GBA 固定头；Nintendo Logo/header checksum 异常时要求用户再次确认。
+7. 全部检查完成后才原子写入本地游戏库。
+
+下载成功后仍会在本机计算内容 SHA-256 作为内部 `romId`，用于去重、分片存储和存档/云存档隔离。该值不是 R2 下载准入条件，也不与 catalog 或 ETag 比较。存档正文、WASM 产物和发行包的 SHA-256 校验不受本次变更影响。
 
 ```mermaid
 flowchart LR
-    Publisher["Ubuntu 22.04 发布主机"] -->|"S3 API + 最小权限凭证"| Private["R2 bucket: rom"]
-    Private --> Public["R2 自定义公开域名"]
-    App["微信小程序"] -->|"GET manifest"| Public
-    App -->|"downloadFile ROM / Image cover"| Public
-    App --> Verify["长度 + SHA-256 + GBA Header"]
-    Verify --> Local["微信 USER_DATA_PATH"]
-    Local --> Player["WXWebAssembly 播放器"]
-    Player --> Saves["本地/云存档"]
+    Catalog["R2 catalog v2"] --> Meta["ID / objectKey / URL / size"]
+    Meta --> Download["wx.downloadFile"]
+    Download --> Check["HTTP 200 + 长度 + GBA Header"]
+    Check --> LocalId["本地计算 romId，仅用于隔离和去重"]
+    LocalId --> Library["本地游戏库"]
+    Library --> Saves["本地与云存档"]
 ```
 
-- 发布主机拥有最小权限 R2 写凭证，小程序没有任何 R2 凭证。
-- 小程序只信任构建时白名单中的精确 HTTPS host。
-- manifest 是不可信网络输入；只有整个文件和全部条目通过校验后才替换缓存。
-- ROM 正文必须在本地再次计算 SHA-256，不能只信任 ETag、文件名或 HTTP header。
+## 4. 对象布局
 
-## 3. R2 对象布局
-
-推荐使用内容身份稳定的 key：
+当前实际布局是原始文件名目录：
 
 ```text
-catalog/v1/roms.json
-catalog/v1/archive/roms-20260801T120000Z.json
-roms/<64-char-rom-sha256>.gba
-covers/<64-char-rom-sha256>.<cover-content-hash>.webp
-rights/<64-char-rom-sha256>/notice.txt        # 不公开或独立受控保存
+gba/<original-file-name>.gba
 ```
 
-约束：
+新增客户端目录对象使用独立版本路径：
 
-- `roms/` 文件名只使用 ROM SHA-256，不使用标题、用户输入或原始文件名。
-- `covers/` 使用内容 hash，更新封面产生新 key，避免不可控 CDN 旧缓存。
-- `catalog/v1/roms.json` 是唯一客户端入口；不得让客户端调用 S3 ListObjects。
-- `rights/` 权利证据默认不放公共域名；内部记录必须能从 ROM ID 追溯。
-- 同一 ROM ID 的正文不可覆盖成不同字节；正文变化必须产生新的 ROM ID。
+```text
+catalog/v2/roms.json
+catalog/v2/archive/roms-<UTC timestamp>.json
+```
 
-## 4. Manifest 契约
+小程序不持有 R2/S3 凭证，也不能调用 Cloudflare Dashboard API。`catalog/v2/roms.json` 是小程序唯一的列表入口；直接暴露 `ListObjects` 会泄漏管理凭证，不允许使用。
 
-完整示例位于 `minigba-app/catalog.example.json`。
+## 5. Catalog schema v2
+
+示例：
 
 ```json
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-01T12:00:00.000Z",
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T03:14:35.162Z",
   "bucket": "rom",
   "items": [
     {
-      "romId": "64-char-lowercase-sha256",
-      "title": "Authorized Homebrew",
-      "gameCode": "DEMO",
-      "downloadUrl": "../../roms/<romId>.gba",
-      "sizeBytes": 262144,
-      "description": "Short player-facing description.",
-      "genres": ["Homebrew", "Adventure"],
-      "region": "World",
-      "language": "English",
-      "coverUrl": "../../covers/<romId>.<coverHash>.webp",
-      "featured": true,
-      "updatedAt": "2026-08-01T11:30:00.000Z",
-      "license": {
-        "name": "CC BY 4.0",
-        "url": "https://author.example/license",
-        "notice": "Published with attribution permission."
-      }
+      "id": "b63b2244edc2385ae1eab9c8ee448c6f",
+      "title": "Example Game (USA)",
+      "objectKey": "gba/Example Game (USA).gba",
+      "etag": "b63b2244edc2385ae1eab9c8ee448c6f",
+      "downloadUrl": "https://rom.sid.mom/gba/Example%20Game%20(USA).gba",
+      "sizeBytes": 8388608,
+      "genres": [],
+      "region": "USA",
+      "language": "En, Fr, De",
+      "featured": false,
+      "updatedAt": "2025-07-27T09:28:50.884Z"
     }
   ]
 }
 ```
 
-### 4.1 必填字段
+字段规则：
 
 | 字段 | 规则 |
 | --- | --- |
-| `schemaVersion` | 当前只能为整数 `1` |
-| `generatedAt` | 可解析的 ISO 8601 时间 |
-| `bucket` | 非空，当前预期为 `rom` |
-| `items` | 数组，最多 500 项 |
-| `romId` | ROM 正文 SHA-256，64 位小写十六进制，目录内唯一 |
-| `title` | 1–80 字符 |
-| `downloadUrl` | HTTPS 绝对 URL 或相对 manifest URL，解析后 host 必须在白名单 |
-| `sizeBytes` | 精确整数，192 B–32 MiB |
-| `license.name` | 可审计的分发许可/授权名称，不得写“unknown”代替审核 |
+| `schemaVersion` | 必须为整数 `2` |
+| `generatedAt` | 有效 ISO 8601 时间 |
+| `bucket` | 必须为 `rom` |
+| `items` | 最多 2,000 项；当前为 981 项 |
+| `id` | 1–128 个安全 ASCII 字符，目录内唯一；当前使用 R2 ETag 作为版本 ID，但不用于正文校验 |
+| `title` | 1–128 字符 |
+| `objectKey` | 1–400 字符，必须是 `gba/*.gba`，目录内唯一 |
+| `downloadUrl` | HTTPS 绝对/相对 URL，解析后 host 必须在白名单 |
+| `sizeBytes` | 192 B–32 MiB 的精确整数 |
+| `etag` | 可选，只展示对象版本，不作为安全摘要 |
+| `license` | 可选；存在时校验名称和 HTTPS URL，不存在时 UI 显示“权利信息未标注” |
 
-### 4.2 可选字段
+`gameCode`、`description`、`genres`、`region`、`language`、`coverUrl`、`featured` 和 `updatedAt` 均为展示元数据。客户端不得根据缺失的展示字段阻止一个满足技术校验的条目下载。
 
-- `gameCode` 最多 12 字符，用于显示，不是身份。
-- `description` 最多 240 字符。
-- `genres` 最多 8 项，每项最多 24 字符。
-- `region`、`language` 用于筛选和详情展示。
-- `coverUrl` 必须符合与 ROM 相同的 URL/host 规则。
-- `featured` 仅影响排序，不绕过校验。
-- `updatedAt` 是条目元数据更新时间，不参与 ROM 身份。
-- `license.url` 必须是无凭证、无 fragment 的 HTTPS URL；客户端只显示许可名称，不自动跳转。
+## 6. 目录生成
 
-## 5. Cloudflare Dashboard 配置基线
+生成器位于 `minigba-app/scripts/generate-r2-rom-catalog.mjs`，输入为 Cloudflare 对象接口的 `result` 数组、`objects` 数组或直接对象数组。生成器不读取 ROM 正文，也不计算 SHA-256。
 
-在 `R2 > rom > Settings` 中核对并记录以下值：
-
-1. 自定义公开域名，例如 `roms.example.com`。生产不把临时开发域名作为长期发布契约。
-2. Public access 只覆盖需要公开的目录；任何内部权利证据和临时上传对象不得位于公开路径。
-3. Cache：ROM 和内容寻址封面设置 `public, max-age=31536000, immutable`；`catalog/v1/roms.json` 设置 `public, max-age=300, must-revalidate`。
-4. MIME：ROM 使用 `application/octet-stream`，manifest 使用 `application/json; charset=utf-8`，封面使用实际图片类型。
-5. 若配置 CORS，只开放 `GET`、`HEAD` 和必要响应头；CORS 不是鉴权机制，也不能替代微信合法域名或客户端 SHA-256 校验。
-6. S3/API token 仅授予目标 bucket 和必要的 list/put/delete 权限；生产发布凭证与人工 Dashboard 登录分离。
-
-当前真实公开域名、CORS 和对象列表必须从 Dashboard 再次核实后才能写入生产环境。不得从 account ID 和 bucket 名猜测公共 URL。
-
-## 6. 微信公众平台配置
-
-在小程序后台配置：
-
-- `request` 合法域名：manifest 所在自定义域名。
-- `downloadFile` 合法域名：ROM 和封面实际 host；若与 manifest 相同只需一个域名。
-- 云存档 API 的 `request` 合法域名仍独立配置。
-
-发布环境变量：
-
-```bash
-export TARO_APP_API_BASE_URL=https://api.example.com
-export TARO_APP_ROM_CATALOG_URL=https://roms.example.com/catalog/v1/roms.json
-export TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.com
-```
-
-`TARO_APP_ROM_DOWNLOAD_HOSTS` 只包含逗号分隔的精确 `host[:port]`，不包含 scheme、路径或通配符。
-
-## 7. Ubuntu 22.04 发布流程
-
-本节只允许在 Ubuntu 22.04 裸机执行，不使用 Docker、WSL、虚拟机或其他虚拟化。
-
-### 7.1 准备对象
-
-```bash
-sha256sum authorized-homebrew.gba
-stat -c '%s' authorized-homebrew.gba
-```
-
-把实际 SHA-256 和长度写入 manifest。不要依赖 R2 ETag 作为内容摘要。
-
-### 7.2 上传顺序
-
-1. 上传新的 ROM 和内容寻址封面对象。
-2. 从公开域名下载对象，核对 HTTP 200、Content-Length 和本地 SHA-256。
-3. 生成新的 versioned manifest，运行本地校验。
-4. 上传 versioned manifest，验证公开读取。
-5. 最后原子替换 `catalog/v1/roms.json`。
-6. 保留上一个有效 manifest 供回滚；不要保留指向已撤权对象的公开历史入口。
-
-### 7.3 校验
+只允许在 Ubuntu 22.04 裸机运行：
 
 ```bash
 cd minigba-app
-TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.com \
-  npm run validate:catalog -- ./catalog.production.json
-
-TARO_APP_ROM_DOWNLOAD_HOSTS=roms.example.com \
-  npm run validate:catalog -- https://roms.example.com/catalog/v1/roms.json
+export TARO_APP_ROM_PUBLIC_BASE_URL=https://rom.sid.mom
+npm run generate:catalog -- /secure/r2-objects.json catalog.r2.json
+TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom \
+  npm run validate:catalog -- catalog.r2.json
 ```
 
-正式 `scripts/build-release.sh` 会在 Taro 构建前校验远程 manifest；目录不可达或不合规会阻断发行。
+`r2-objects.json` 必须来自受控的 R2 管理导出，至少包含 `key`、`etag`、`size`、`last_modified`。不得把 Cloudflare cookie、API token 或 S3 secret 写进输入文件、Git 或构建日志。
 
-## 8. 客户端行为
+## 7. 生产配置
 
-### 8.1 首页
+App 编译环境：
 
-- 默认打开 ROM 广场，同时展示最近游戏、累计时长和存档数量。
-- 可切换“ROM 广场 / 我的游戏 / 游玩记录”。
-- 广场支持搜索、分类筛选、精选排序、手动刷新和已安装状态。
-- 网络失败但有有效缓存时显示“缓存目录”；无缓存时提供重试，本地游戏不受影响。
+```bash
+export TARO_APP_API_BASE_URL=https://api.example.com
+export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
+```
 
-### 8.2 下载
+微信公众平台必须加入：
 
-- 下载按钮显示进度；同一 ROM 已安装时进入详情，不重复占用空间。
-- 下载成功不等于入库成功；长度、SHA-256、Header 和原子写入全部完成后才显示为已安装。
-- 重定向后的最终对象仍受微信平台域名约束；运营配置不应依赖跨 host 重定向。
+- `request` 合法域名：`https://rom.sid.mom`；
+- `downloadFile` 合法域名：`https://rom.sid.mom`；
+- 云存档 API 域名另行配置。
 
-### 8.3 游戏详情
+微信小程序原生 `request/downloadFile` 不以浏览器 CORS 作为合法域名替代品。若同一目录还要供 H5 或管理页面读取，再在 R2 配置仅允许 `GET`、`HEAD` 的 CORS；当前 Dashboard 中 CORS 为空。
 
-- 未安装条目显示“下载并加入”；已安装条目显示“开始游戏”。
-- 展示 ROM ID、大小、地区、语言、分发许可、累计游玩、会话记录和存档摘要。
-- 删除 ROM 默认保留存档和记录；删除 ROM + 本地存档需要明确二次选择。
+## 8. 上传与回滚
 
-## 9. 游玩记录与存档管理
+本次没有替用户上传对象或修改 Cloudflare 权限。确认上传后，在 Ubuntu 22.04 裸机使用最小权限 R2 凭证：
 
-- 玩家点击开始后才开始计时；暂停、后台、退出、核心异常都会停止本段计时并 checkpoint。
-- 同一页面生命周期使用同一 session ID，重复 checkpoint 更新原记录，不重复累计。
-- 首页提供全局会话列表，详情页提供当前 ROM 会话列表；最多保留 500 项。
-- 会话明细删除不影响累计时长。累计时长是游戏库摘要，避免清理记录后首页统计突然归零。
-- 存档详情仍由存档中心管理，包括本地导入/导出、云端恢复、历史 revision、冲突处理和删除。
+```bash
+export AWS_ACCESS_KEY_ID='R2 scoped key id'
+export AWS_SECRET_ACCESS_KEY='R2 scoped secret'
+export R2_ENDPOINT='https://aa1f1424bb0e9156ec75328626ea326b.r2.cloudflarestorage.com'
 
-## 10. 回滚和下架
+aws s3 cp catalog.r2.json \
+  s3://rom/catalog/v2/archive/roms-20260802T031435Z.json \
+  --endpoint-url "$R2_ENDPOINT" \
+  --content-type 'application/json; charset=utf-8' \
+  --cache-control 'public, max-age=300, must-revalidate'
 
-### 10.1 Manifest 回滚
+aws s3 cp catalog.r2.json \
+  s3://rom/catalog/v2/roms.json \
+  --endpoint-url "$R2_ENDPOINT" \
+  --content-type 'application/json; charset=utf-8' \
+  --cache-control 'public, max-age=300, must-revalidate'
+```
 
-1. 确认上一 manifest 中全部对象仍存在且授权有效。
-2. 运行远程校验。
-3. 替换 current manifest。
-4. 等待短缓存窗口并在微信真机强制刷新验证。
+上传后必须验证：
 
-### 10.2 单项紧急下架
+```bash
+curl --fail --head https://rom.sid.mom/catalog/v2/roms.json
+TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom \
+  npm run validate:catalog -- https://rom.sid.mom/catalog/v2/roms.json
+```
 
-1. 立即从新 manifest 移除条目并发布。
-2. 清理/失效公共缓存；必要时删除公开 ROM 和封面对象。
-3. 保留内部事件、权利与摘要记录。
-4. 已下载到用户本地的内容不能依赖 manifest 自动删除；如法律要求删除，需要单独设计有依据、可审计且不破坏存档的处置流程。
+回滚时先确认旧目录引用的对象仍存在，再把对应 archive 文件覆盖到 current 路径。目录缓存只有在新目录完整通过校验时才替换；失败时客户端保留上一份有效缓存并标记为缓存目录。
 
-## 11. 验收清单
+## 9. 客户端行为
 
-- [ ] Dashboard 中真实自定义域名、Public access、缓存和 CORS 已由两人复核。
-- [ ] manifest 远程校验通过，目录内无重复 digest、错误 host 或缺少许可条目。
-- [ ] 每个公开 ROM 从公共域名下载后的长度和 SHA-256 与 manifest 一致。
-- [ ] 微信 request/download 合法域名已生效。
-- [ ] iOS/Android 真机完成目录加载、缓存回退、下载进度、取消/失败、安装和启动测试。
-- [ ] 无网络时本地游戏、游玩记录和存档管理仍可用。
-- [ ] ROM、封面和描述的分发权利证据完整。
-- [ ] R2 凭证未进入小程序、Git、manifest、构建日志或诊断包。
-- [ ] 下架与 manifest 回滚演练通过。
+- 首页默认显示 ROM 广场，并可切换“我的游戏”和“游玩记录”。
+- 981 个条目支持标题、object key、地区、语言、游戏代码和分类搜索；首页每批渲染 60 条，长标题在列表中省略，详情页完整显示。
+- 广场使用 catalog `id` 判断安装关系；下载完成后把 catalog `id` 与本地 `romId` 关联。
+- 详情页展示 R2 object key、字节大小、地区/语言、ETag、权利标记、本地内容 ID、存档和游玩记录。
+- 已安装条目进入详情，不重复下载；相同正文即使来自不同 URL，也由本地内容 ID 去重。
+- 删除 ROM 默认保留存档和游玩记录；删除 ROM 与存档需要明确二次确认。
+
+## 10. 验收清单
+
+- [x] 真实 bucket、自定义域名、公开访问、CORS 和对象前缀已检查。
+- [x] `gba/` 981 个对象已生成 schema v2 本地目录。
+- [x] 本地目录通过 2,000 项上限、ID/key 唯一性、URL、host 和精确长度校验。
+- [x] 客户端不要求或比对预置 ROM SHA-256。
+- [ ] `catalog/v2/roms.json` 已获授权上传到 R2，并通过公开读取验证。
+- [ ] `rom.sid.mom` 已加入微信 `request` 和 `downloadFile` 合法域名。
+- [ ] iOS/Android 真机完成 981 项目录加载、搜索、缓存、下载、安装和启动测试。
+- [ ] 14 个非主要容量对象完成 GBA Header 与核心启动抽样。
+- [ ] 对外发行前完成对象权利信息审查和必要的下架流程。
+- [ ] R2 凭证未进入小程序、Git、catalog、日志或诊断包。
+- [ ] 整个构建、上传和验证过程只在 Ubuntu 22.04 裸机执行，未使用 Docker、WSL 或虚拟机。

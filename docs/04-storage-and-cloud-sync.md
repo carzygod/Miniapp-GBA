@@ -131,24 +131,24 @@ ZIP 是 P1，必须执行：
 
 ### 5.4 R2 ROM 目录与下载
 
-R2 公共域名只暴露不可变 ROM、封面和一个小型目录 manifest。客户端不调用 S3 ListObjects，不包含 access key，也不从对象名猜测 SHA-256、大小或授权状态。
+R2 公共域名只暴露 ROM、封面和一个小型目录 manifest。客户端不调用 S3 ListObjects，不包含 access key；目录明确提供 object key、精确大小和可选权利元数据，不从对象名猜测正文摘要或授权状态。
 
 ```text
-catalog/v1/roms.json
-roms/<romId>.gba
-covers/<romId>.<content-hash>.webp
+catalog/v2/roms.json
+gba/<original-file-name>.gba
+covers/<catalog-id>.<content-hash>.webp
 ```
 
 客户端处理顺序：
 
 1. 校验 `TARO_APP_ROM_CATALOG_URL` 使用 HTTPS 且 host 在 `TARO_APP_ROM_DOWNLOAD_HOSTS`。
-2. 获取 JSON 后一次性验证 schema、生成时间、bucket、最多 500 项和每项分发许可。
+2. 获取 JSON 后一次性验证 schema v2、生成时间、bucket、最多 2,000 项及唯一目录 ID/object key。
 3. 将相对对象 URL 基于 manifest URL 解析，再次检查 HTTPS、无凭证、无 fragment 和 host allowlist。
 4. 仅缓存完整通过验证的目录；新目录失败时保留旧缓存并标为 stale。
-5. 用户选择条目后通过 `downloadFile` 下载，验证 HTTP 200、声明长度、落盘长度、SHA-256 和 GBA Header。
-6. 使用 ROM ID 分片路径原子提交，更新本地 catalog 元数据；失败时不创建半成品索引。
+5. 用户选择条目后通过 `downloadFile` 下载，验证 HTTP 200、声明长度、落盘长度和 GBA Header，不要求预置 SHA-256。
+6. 入库时计算本地内容 ID，并使用其分片路径原子提交，同时保存 catalog ID/object key/ETag 关联；失败时不创建半成品索引。
 
-ROM 对象使用内容寻址和长期 immutable cache；`roms.json` 使用短缓存并可原子替换。完整字段和发布步骤见 `12-r2-rom-catalog.md`。
+现有 ROM 使用 `gba/` 原始文件名 key；`roms.json` 使用短缓存并可原子替换。完整真实清单、字段和发布步骤见 `12-r2-rom-catalog.md`。
 
 ### 5.5 游玩记录
 

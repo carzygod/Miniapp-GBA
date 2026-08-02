@@ -25,6 +25,10 @@ export class LibraryRepository {
     return (await this.loadIndex()).games.find(game => game.romId === romId)
   }
 
+  async getByCatalogId(catalogId: string): Promise<GameEntry | undefined> {
+    return (await this.loadIndex()).games.find(game => game.catalogId === catalogId)
+  }
+
   async chooseAndImport(): Promise<GameEntry> {
     await ensureCopyrightConsent()
     const result = await Taro.chooseMessageFile({ count: 1, type: 'file', extension: ['gba','zip'] })
@@ -50,12 +54,11 @@ export class LibraryRepository {
     return this.storeBytes(extracted.bytes,extracted.fileName,isZip?'zip':'wechat-message-file')
   }
 
-  async importAuthorizedDownload(url:string,expectedSha256:string,expectedSize:number,displayName?:string):Promise<GameEntry>{
+  async importAuthorizedDownload(url:string,expectedSize:number,displayName?:string):Promise<GameEntry>{
     await ensureCopyrightConsent()
     const parsed=new URL(url)
-    if(parsed.protocol!=='https:'||parsed.username||parsed.password)throw new Error('授权 ROM 地址必须使用 HTTPS')
+    if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash)throw new Error('授权 ROM 地址必须使用无凭证、无片段的 HTTPS')
     if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('该域名不在授权 ROM 下载白名单中')
-    if(!/^[0-9a-f]{64}$/.test(expectedSha256))throw new Error('必须提供 64 位小写 SHA-256')
     if(!Number.isInteger(expectedSize)||expectedSize<0xc0||expectedSize>MAX_ROM_BYTES)throw new Error('授权 ROM 长度无效')
     const response=await Taro.downloadFile({url:parsed.toString(),timeout:30_000})
     if(response.statusCode!==200)throw new Error(`授权 ROM 下载失败 (${response.statusCode})`)
@@ -63,7 +66,6 @@ export class LibraryRepository {
     const actualSize=await fileSize(response.tempFilePath)
     if(actualSize!==expectedSize)throw new Error('下载文件长度与授权清单不一致')
     const bytes=await readBytes(response.tempFilePath)
-    if(sha256Hex(bytes)!==expectedSha256)throw new Error('下载文件 SHA-256 与授权清单不一致')
     validateGba(bytes);await confirmHeaderRisk(bytes)
     const fileName=(displayName?.trim()||decodeURIComponent(parsed.pathname.split('/').pop()||'authorized.gba')).replace(/\.gba$/i,'')+'.gba'
     return this.storeBytes(bytes,fileName,'authorized-download')
@@ -72,9 +74,8 @@ export class LibraryRepository {
   async importCatalogItem(item:RomCatalogItem,onProgress?:(progress:number)=>void):Promise<GameEntry>{
     await ensureCopyrightConsent()
     const parsed=new URL(item.downloadUrl)
-    if(parsed.protocol!=='https:'||parsed.username||parsed.password)throw new Error('ROM 广场下载地址必须使用 HTTPS')
+    if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash)throw new Error('ROM 广场下载地址必须使用无凭证、无片段的 HTTPS')
     if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('ROM 广场域名不在发布白名单中')
-    if(!/^[0-9a-f]{64}$/.test(item.romId))throw new Error('ROM 广场 SHA-256 无效')
     if(!Number.isInteger(item.sizeBytes)||item.sizeBytes<0xc0||item.sizeBytes>MAX_ROM_BYTES)throw new Error('ROM 广场长度无效')
     const task=Taro.downloadFile({url:parsed.toString(),timeout:30_000})
     task.progress?.(event=>onProgress?.(Math.max(0,Math.min(100,event.progress))))
@@ -84,12 +85,11 @@ export class LibraryRepository {
     const actualSize=await fileSize(response.tempFilePath)
     if(actualSize!==item.sizeBytes)throw new Error('下载文件长度与 ROM 目录不一致')
     const bytes=await readBytes(response.tempFilePath)
-    if(sha256Hex(bytes)!==item.romId)throw new Error('下载文件 SHA-256 与 ROM 目录不一致')
     validateGba(bytes);await confirmHeaderRisk(bytes)
     const entry=await this.storeBytes(bytes,`${safeFileName(item.title)}.gba`,'r2-catalog')
     const index=await this.loadIndex(),stored=index.games.find(game=>game.romId===entry.romId)
     if(!stored)throw new Error('ROM 已写入但游戏库索引缺失')
-    stored.title=item.title;stored.gameCode=item.gameCode||stored.gameCode;stored.coverUrl=item.coverUrl;stored.description=item.description;stored.genres=[...item.genres];stored.region=item.region;stored.language=item.language;stored.licenseName=item.license.name;stored.catalogUpdatedAt=item.updatedAt
+    stored.title=item.title;stored.gameCode=item.gameCode||stored.gameCode;stored.coverUrl=item.coverUrl;stored.description=item.description;stored.genres=[...item.genres];stored.region=item.region;stored.language=item.language;stored.licenseName=item.license?.name;stored.catalogId=item.id;stored.catalogObjectKey=item.objectKey;stored.catalogEtag=item.etag;stored.catalogUpdatedAt=item.updatedAt
     await this.saveIndex(index)
     return stored
   }

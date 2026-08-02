@@ -130,9 +130,9 @@
 
 ### 6.1 Repository 单元测试
 
-- R2 manifest 版本、生成时间、条目上限、重复 digest、精确长度、HTTPS、host allowlist 和分发许可。
+- R2 schema v2 manifest 的生成时间、2,000 项上限、重复目录 ID/object key、精确长度、HTTPS、host allowlist 和可选元数据。
 - 目录网络失败回退到最后一次完整验证缓存，并显式标记 stale。
-- R2 下载的响应长度、文件长度、SHA-256 和 GBA Header 任一不一致都不得入库。
+- R2 下载的响应长度、文件长度和 GBA Header 任一不一致都不得入库；不设置预置 SHA-256 比对用例。
 - ROM hash 与已知向量一致。
 - 重复 ROM 不产生第二份文件。
 - 同名不同 ROM 产生独立目录。
@@ -213,8 +213,8 @@
 | `TC-ROM-002` | 同 ROM 不同文件名 | 不重复占用，仍匹配原存档 |
 | `TC-ROM-003` | 同名不同 ROM | 两个独立条目和存档目录 |
 | `TC-ROM-004` | 32 MiB 边界/超限 | 边界接受，超限在完整读取前拒绝 |
-| `TC-ROM-005` | R2 manifest 含重复 hash、错误 host 或缺少许可 | 拒绝整个新目录，保留已验证缓存 |
-| `TC-ROM-006` | R2 ROM 内容与 manifest 不一致 | 不写入正式 ROM 或本地索引 |
+| `TC-ROM-005` | R2 manifest 含重复 ID/key、错误 host 或非法对象路径 | 拒绝整个新目录，保留已验证缓存 |
+| `TC-ROM-006` | R2 ROM 长度或 GBA Header 与目录要求不一致 | 不写入正式 ROM 或本地索引 |
 | `TC-ROM-007` | R2 目录离线后打开首页 | 广场标记缓存，本地游戏和存档可用 |
 | `TC-EMU-001` | 30 分钟普通运行 | 无崩溃，达到性能门槛，无持续增长 |
 | `TC-EMU-002` | 后台 30 秒再返回 | 暂停、清键、音频可恢复、进度未丢失 |

@@ -31,7 +31,7 @@
 | [09-repository-release-contract.md](./09-repository-release-contract.md) | 三仓库边界、版本兼容矩阵、产物交接和发布顺序 | Tech Lead、发布工程师 |
 | [10-validation-report.md](./10-validation-report.md) | 当前实现、自动化证据、外部验收和部署阻断 | 研发、测试、产品 |
 | [11-requirement-traceability.md](./11-requirement-traceability.md) | 每个 FR/NFR 的实现、自动证据与真机、裸机、合规门槛 | 产品、研发、测试、发布 |
-| [12-r2-rom-catalog.md](./12-r2-rom-catalog.md) | Cloudflare R2 对象布局、manifest、微信域名、发布、校验、回滚和权利治理 | 客户端、发布、运营、安全、法务 |
+| [12-r2-rom-catalog.md](./12-r2-rom-catalog.md) | 真实 Cloudflare R2 的 981 项 GBA 清单、schema v2、无预置 SHA-256 流程、微信域名、发布与回滚 | 客户端、发布、运营、安全、法务 |
 
 ## 3. 约束优先级
 

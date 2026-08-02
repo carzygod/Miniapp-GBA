@@ -33,6 +33,7 @@
 .catalog-state{min-height:260rpx;padding:60rpx 16rpx;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24rpx;color:var(--muted);text-align:center;line-height:1.6}
 .catalog-state button{margin:0;width:180rpx;height:62rpx;border:1px solid #3b5d54;background:#1d2b27;color:var(--teal);font-size:22rpx;border-radius:5rpx}
 .catalog-shelf{margin:0 -32rpx}
+.catalog-more{margin:28rpx auto 8rpx;width:300rpx;height:68rpx;border:1px solid #3b5d54;background:#1d2b27;color:var(--teal);font-size:22rpx;border-radius:5rpx}
 .catalog-row{min-height:158rpx;padding:20rpx 32rpx;display:flex;align-items:center;gap:20rpx;border-bottom:1px solid #2b332f}
 .catalog-row:active{background:#1a201d}
 .game-artwork{width:112rpx;height:112rpx;flex:0 0 auto;border:1px solid rgba(255,255,255,.15);background:#080b0a}

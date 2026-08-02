@@ -26,20 +26,20 @@
 | FR-ACC-005 | 自动验证 | 设置页退出；只删除 session token，不删除本地目录 | 真机退出重登 |
 | FR-ACC-006 | 已实现/待环境验收 | App 二次确认、删除回执查询；API 删除 job、撤销 session、worker、审计 | E2 PostgreSQL 集成、E3 往返 |
 | FR-ROM-001 | 已实现/待环境验收 | `chooseMessageFile` 只选单个 `.gba/.zip`，读取前检查元数据大小 | E4 iOS/Android 微信文件选择器 |
-| FR-ROM-002 | 已实现/待环境验收 | 编译期 host allowlist、HTTPS、HTTP 状态、Content-Length、声明长度、SHA-256 全部校验 | E3 合法 request 域名与授权清单 |
+| FR-ROM-002 | 已实现/待环境验收 | 编译期 host allowlist、HTTPS、HTTP 状态、Content-Length 和声明/落盘长度全部校验；不要求预置 SHA-256 | E3 合法 request/download 域名 |
 | FR-ROM-003 | 自动验证 | 原始 ROM、下载和 ZIP 解压上限均为 32 MiB；文件选择先查 `size` | 大小边界真机回归 |
-| FR-ROM-004 | 自动验证 | 扩展名、GBA 头、Logo、header checksum、大小和 SHA-256；异常头需用户确认；单测覆盖 header | E5 损坏 ROM 集 |
+| FR-ROM-004 | 自动验证 | 扩展名、GBA 头、Logo、header checksum 和大小；异常头需用户确认；入库后计算本地内容 ID | E5 损坏 ROM 集 |
 | FR-ROM-005 | 自动验证 | ROM ID 为内容 SHA-256，分片路径去重；游戏库可修改显示名称 | 重命名后存档回归 |
 | FR-ROM-006 | 自动验证 | 游戏库展示标题、最后游玩、本地存档、云状态、同步时间、失败原因和 ROM 占用 | 视觉与长文本真机走查 |
 | FR-ROM-007 | 自动验证 | 删除菜单明确“保留存档”或“同时删除本地存档”，默认项保留 | 真机破坏性操作走查 |
-| FR-ROM-008 | 已实现/待环境验收 | 递归重扫、恢复孤儿、移除丢失索引、SHA 校验、损坏文件隔离 | E4 微信文件系统批量回归 |
+| FR-ROM-008 | 已实现/待环境验收 | 递归重扫、恢复孤儿、移除丢失索引、本地内容 ID 重建和损坏文件隔离 | E4 微信文件系统批量回归 |
 | FR-ROM-009 | 自动验证 | fflate 单 ROM ZIP；条目数、路径、总大小、压缩比和多 ROM 限制；Vitest 覆盖合法/恶意包 | 大 ZIP 真机内存测试 |
 | FR-ROM-010 | P2 延期 | 未实现 IPS/UPS/BPS，符合首版范围 | 后续版本另立设计 |
 | FR-ROM-011 | 已实现/待环境验收 | `RomCatalogClient` 从构建时 URL 读取 R2 manifest，15 分钟缓存并在失败时保留 stale 缓存；首页本地数据独立加载 | E9 真实 R2 URL 与断网回归 |
-| FR-ROM-012 | 自动验证 | schema、时间、500 项上限、唯一 SHA-256、长度、HTTPS、精确 host 和许可全量校验；Vitest 与发布脚本覆盖 | E6 权利证据人工审核 |
-| FR-ROM-013 | 已实现/待环境验收 | `importCatalogItem` 校验 HTTP 200、响应/文件长度、SHA-256、Header 后才原子入库 | E4/E9 真机 R2 下载 |
+| FR-ROM-012 | 自动验证 | schema v2、时间、2,000 项上限、唯一 catalog ID/object key、长度、HTTPS、精确 host 和可选元数据全量校验；981 条真实目录已通过脚本 | E6 权利证据人工审核 |
+| FR-ROM-013 | 已实现/待环境验收 | `importCatalogItem` 校验 HTTP 200、响应/文件长度和 Header 后才计算本地内容 ID 并原子入库，不比对预置 SHA-256 | E4/E9 真机 R2 下载 |
 | FR-ROM-014 | 已实现/待环境验收 | 首页广场支持搜索、分类、精选排序、缓存标识、刷新、安装状态和下载进度 | E4 长文本/弱网视觉走查 |
-| FR-ROM-015 | 已实现/待环境验收 | `pages/game` 汇总下载/启动、许可、ROM 身份、累计时长、会话和存档；删除默认保留存档/记录 | E4 详情管理全流程 |
+| FR-ROM-015 | 已实现/待环境验收 | `pages/game` 汇总下载/启动、R2 object key/ETag、可选许可、本地内容 ID、累计时长、会话和存档；删除默认保留存档/记录 | E4 详情管理全流程 |
 
 ## 3. 模拟、视频、音频与控制
 
@@ -153,7 +153,7 @@
 | E6 | 上线主体、地区和类目对应的法律/平台审核 | 隐私政策、用户协议、ROM 权利、许可证和审核结论 |
 | E7 | 生产或等价环境的持续观测周期 | 月度 API 可用性 >=99.9% 的 SLI 报告 |
 | E8 | 合规裸机、域名、证书、空闲高端口和备份目标 | 部署/回滚/恢复 smoke、最终 URL 和监控告警 |
-| E9 | Cloudflare R2 `rom` 桶真实自定义域名、Public access、对象清单及微信 download/request 合法域名 | Dashboard 双人复核、远程 manifest 校验、对象 SHA-256、iOS/Android 下载和下架回滚证据 |
+| E9 | Cloudflare R2 `rom` 桶生产目录上传及微信 download/request 合法域名 | Dashboard 已单人核对；仍需远程 schema v2 manifest 校验、对象长度、iOS/Android 下载和下架回滚证据 |
 
 ## 8. 当前阻塞结论
 

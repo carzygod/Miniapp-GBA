@@ -1,6 +1,6 @@
 # 当前验证报告
 
-报告日期：2026-08-01。
+报告日期：2026-08-02。
 
 ## 1. 已完成证据
 
@@ -17,11 +17,18 @@
 - TypeScript typecheck、ESLint、Vitest 和 Taro 4.2.1 weapp production build 通过。
 - 微信开发者工具 2.01.2510290 暴露的 WXSS 通配选择器兼容问题已修复；生产构建现在自动扫描全部生成 WXSS，并在发现不受支持的通配选择器时阻断。
 - 开发者工具的 `3.17.0` 基础库缓存曾出现下载不完整和 MD5 校验失败，导致模拟器在业务代码执行前返回 HTTP 500。工程现固定并构建校验 `libVersion: 3.16.1`；开发者工具重新完整下载该版本后，普通模式冷启动日志记录 `mainframe?v=3.16.1`、`finish load user code` 和 `webview page ready`，且不再出现 500、MD5、WXSS 或路由超时。
-- 15 个测试文件、55 个测试通过；语句覆盖率 `63.26%`、分支 `57.84%`、函数 `64.89%`、行 `78.12%`。新增覆盖 R2 manifest 的相对 URL、host allowlist、重复 SHA-256、许可字段、缓存回退，以及游玩记录 upsert、损坏恢复、上一成功版本恢复、按 ROM 清理和运行/暂停/后台计时状态机；原有 SHA-256、输入、ZIP、存档、云同步和诊断测试继续通过。
+- 15 个测试文件、57 个测试通过；语句覆盖率 `63.53%`、分支 `58.05%`、函数 `65.26%`、行 `78.00%`。R2 schema v2 测试覆盖相对 URL、host allowlist、重复 catalog ID/object key、URL 与 object key 一致性、可选许可、无预置 digest 和缓存回退；本地内容 ID、输入、ZIP、存档、云同步、诊断和游玩计时测试继续通过。
 - 已实现 R2 ROM 广场、目录缓存/刷新、搜索分类、下载进度、游戏详情、真实运行区间计时、逐次游玩记录，以及原有授权下载、ROM 重扫/隔离、ZIP 安全限制、`.sav` 导入、状态预览、截图、快进、音频、控制、存储、诊断和云同步管理。
-- 主包 `487661` 字节；播放器分包 `542094` 字节；运行产物总计 `1029755` 字节。SBOM、许可证表和审计 JSON 位于忽略的 `artifacts/reports/`，不会进入微信上传根目录。
+- 主包及非播放器页面 `489699` 字节；播放器分包 `542094` 字节；运行产物总计 `1031793` 字节。SBOM、许可证表和审计 JSON 位于忽略的 `artifacts/reports/`，不会进入微信上传根目录。
 - 分包 WASM 摘要与 Core 候选一致。
-- `TARO_APP_API_BASE_URL`、`TARO_APP_ROM_CATALOG_URL` 和 `TARO_APP_ROM_DOWNLOAD_HOSTS` 均为编译期常量。正式发布脚本拒绝空/非 HTTPS 目录，先验证远程 manifest，再构建小程序；客户端会再次校验目录与 ROM 正文。
+- `TARO_APP_API_BASE_URL`、`TARO_APP_ROM_CATALOG_URL` 和 `TARO_APP_ROM_DOWNLOAD_HOSTS` 均为编译期常量。正式发布脚本拒绝空/非 HTTPS 目录，先验证远程 schema v2 manifest，再构建小程序；客户端校验目录 ID/object key、URL、精确长度和 GBA Header，不要求或比对预置 ROM SHA-256。
+
+### Cloudflare R2
+
+- Chrome 已实际核对 `rom` bucket：APAC、Dashboard 总大小 `9.74 GB`、公开访问已启用，自定义域名 `rom.sid.mom` 正常，R2.dev 已启用，CORS 为空。
+- `gba/` 完整对象接口返回 981 个 `.gba`，合计 `7,725,253,970` 字节；key 和 ETag 均无重复，HTTP/custom metadata 均为空。
+- 现有公开对象 `HEAD` 返回 200；`https://rom.sid.mom/catalog/v1.json` 和预定 schema v2 目录在上传前均不存在。
+- 已生成 `minigba-app/catalog.r2.json`：981 项、schema v2、约 479 KB，使用 catalog ID/object key/ETag/精确大小而非 SHA-256；本地发布校验通过。
 - App 启动时刷新仍有效的云会话并重新绑定内部用户 UUID，再处理该 UUID 专属的持久化同步队列；匿名态不处理任何队列，401 会清除失效 token，账户切换不会消费其他账户的待同步任务。
 - 云端单槽/单 ROM 删除与同步上传共用 FIFO 互斥锁：先撤销命中的待上传任务，再执行远端删除；远端失败时恢复任务，避免删除成功后被并发上传重新创建。
 - `npm audit --omit=dev` 当前报告 20 个依赖图发现（critical 3、high 8、moderate 8、low 1）。根因包含 Taro 4.2.1 当前依赖的 Swiper 11.1.15 和构建工具链；微信产物不包含第三方 Swiper JS runtime。`SECURITY-EXCEPTIONS.md` 与发行门禁只允许已审查包名，并于 2026-10-31 到期；新发现或过期会阻断发布。
@@ -39,7 +46,7 @@
 
 - 三个发布守卫都会拒绝非 Ubuntu 22.04、VM、Docker/LXC 容器和 WSL。
 - Core WASM、App 候选构建和 API release 构建都会拒绝脏 Git 工作树。
-- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `2827998a5dffc5be3ac244dedea5b72138128f49`、API `3775df99bbb53cf2df4c71fd23dea0a419374832`，工作树均为空且 `git fsck` 通过。
+- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `03ab28ac108dbf5d441c19abb3f5e193dce5be2b`、API `3775df99bbb53cf2df4c71fd23dea0a419374832`，工作树均为空且 `git fsck` 通过。
 - `11-requirement-traceability.md` 已逐项覆盖产品文档中的全部 101 个 FR/NFR 标识，并区分自动验证、待环境验收、外部前置与 P2 延期。
 
 ## 2. 仍需外部环境完成
@@ -48,7 +55,7 @@
 
 - Ubuntu 22.04 裸机上的 native C/CTest、Go race 和 PostgreSQL 集成测试。
 - 真实微信 AppID、AppSecret、合法 request 域名和上传私钥下的登录/上传。
-- Cloudflare R2 `rom` 桶的真实公开自定义域名、Public access/CORS、对象清单、ROM 权利证据和微信 request/download 合法域名。2026-08-01 尝试通过用户指定的 Chrome 访问 Dashboard 时，Chrome/扩展/原生主机检查均正常，但 Codex Chrome 控制内核持续因本地资源路径错误无法启动，因此未猜测或写死 R2 URL。
+- 将 `catalog.r2.json` 上传为 `https://rom.sid.mom/catalog/v2/roms.json`，配置微信 request/download 合法域名，完成 ROM 权利台账和 iOS/Android 真机下载验证。Dashboard、公开域名和对象清单本身已于 2026-08-02 实际核对，不再属于未知项。
 - iOS/Android 微信真机的 WXWebAssembly、Canvas、多点触控、音频、后台和 30 分钟稳定性矩阵。
 - 微信审核、隐私协议、软件许可和 ROM 导入形态的业务审批。
 - 独立备份目标上的加密备份和隔离恢复演练。
