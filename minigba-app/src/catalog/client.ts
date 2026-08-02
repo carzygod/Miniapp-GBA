@@ -1,7 +1,9 @@
 import Taro from '@tarojs/taro'
+import bundledCatalogData from '../../catalog.r2.json'
 import {ROM_CATALOG_SCHEMA_VERSION,type RomCatalog,type RomCatalogItem} from '../domain/models'
 
 const catalogUrl=typeof __MINIGBA_ROM_CATALOG_URL__==='string'?__MINIGBA_ROM_CATALOG_URL__.trim():''
+const remoteCatalogEnabled=typeof __MINIGBA_ROM_CATALOG_REMOTE_ENABLED__==='string'&&__MINIGBA_ROM_CATALOG_REMOTE_ENABLED__.trim().toLowerCase()==='true'
 const configuredHosts=typeof __MINIGBA_ROM_DOWNLOAD_HOSTS__==='string'?__MINIGBA_ROM_DOWNLOAD_HOSTS__:''
 const authorizedHosts=new Set(configuredHosts.split(',').map(value=>value.trim().toLowerCase()).filter(Boolean))
 const cacheKey='minigba.romCatalog.v2'
@@ -19,6 +21,7 @@ export class RomCatalogClient{
   async list(options:{force?:boolean}={}):Promise<CatalogSnapshot>{
     const cached=this.cached()
     if(!options.force&&cached&&Date.now()-Date.parse(cached.fetchedAt)<cacheTtlMs)return{catalog:cached.catalog,stale:false,fetchedAt:cached.fetchedAt}
+    if(!remoteCatalogEnabled)return this.bundled()
     if(!catalogUrl)throw new Error('ROM 广场尚未配置目录地址')
     assertAuthorizedUrl(catalogUrl,'ROM 目录')
     try{
@@ -30,7 +33,7 @@ export class RomCatalogClient{
       return{catalog,stale:false,fetchedAt:value.fetchedAt}
     }catch(error){
       if(cached)return{catalog:cached.catalog,stale:true,fetchedAt:cached.fetchedAt}
-      throw error
+      try{return{...this.bundled(),stale:true}}catch{throw error}
     }
   }
 
@@ -42,6 +45,11 @@ export class RomCatalogClient{
     const value=Taro.getStorageSync<CatalogCache>(cacheKey)
     if(!value||value.sourceUrl!==catalogUrl||typeof value.fetchedAt!=='string')return undefined
     try{return{...value,catalog:parseRomCatalog(value.catalog,catalogUrl)}}catch{return undefined}
+  }
+
+  private bundled():CatalogSnapshot{
+    const catalog=parseRomCatalog(bundledCatalogData,catalogUrl||'https://rom.sid.mom/catalog/v2/roms.json')
+    return{catalog,stale:false,fetchedAt:catalog.generatedAt}
   }
 }
 
@@ -79,7 +87,7 @@ function parseItem(input:unknown,sourceUrl:string,index:number,seenIds:Set<strin
   const license=value.license===undefined?undefined:parseLicense(value.license,title)
   return{
     id,title,objectKey,etag,gameCode,downloadUrl,sizeBytes,genres,license,coverUrl,
-    description:optionalText(value.description,240,'简介'),region:optionalText(value.region,24,'地区'),language:optionalText(value.language,32,'语言'),
+    description:optionalText(value.description,240,'简介'),region:optionalText(value.region,24,'地区'),language:optionalText(value.language,48,'语言'),
     featured:value.featured===true,updatedAt:value.updatedAt===undefined?undefined:validDate(value.updatedAt)?value.updatedAt as string:invalid(`${title} 的更新时间无效`),
   }
 }

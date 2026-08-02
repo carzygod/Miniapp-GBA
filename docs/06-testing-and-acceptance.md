@@ -131,6 +131,7 @@
 ### 6.1 Repository 单元测试
 
 - R2 schema v2 manifest 的生成时间、2,000 项上限、重复目录 ID/object key、精确长度、HTTPS、host allowlist 和可选元数据。
+- 远端开关关闭时，即使强制刷新也返回完整 981 项内置目录，并保持网络请求次数为 0。
 - 目录网络失败回退到最后一次完整验证缓存，并显式标记 stale。
 - R2 下载的响应长度、文件长度和 GBA Header 任一不一致都不得入库；不设置预置 SHA-256 比对用例。
 - ROM hash 与已知向量一致。

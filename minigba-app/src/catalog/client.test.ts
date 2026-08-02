@@ -4,6 +4,7 @@ const state=vi.hoisted(()=>({storage:new Map<string,unknown>(),request:vi.fn()})
 vi.hoisted(()=>{
   const globals=globalThis as Record<string,unknown>
   globals.__MINIGBA_ROM_CATALOG_URL__='https://roms.test.invalid/catalog/v2/roms.json'
+  globals.__MINIGBA_ROM_CATALOG_REMOTE_ENABLED__='true'
   globals.__MINIGBA_ROM_DOWNLOAD_HOSTS__='roms.test.invalid'
 })
 vi.mock('@tarojs/taro',()=>({default:{

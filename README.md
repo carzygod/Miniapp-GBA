@@ -71,10 +71,13 @@ npm run dev:weapp
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.com
 export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false
 export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
-npm run validate:catalog -- "$TARO_APP_ROM_CATALOG_URL"
+npm run validate:catalog -- catalog.r2.json
 npm run build:weapp
 ```
+
+远端目录尚未发布时保持 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false`，小程序直接使用随包内置的 981 项目录且不会请求 404。仅在远端 schema v2 文件公开校验通过后将其改为 `true`。
 
 ## 构建模拟器核心
 

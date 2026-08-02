@@ -197,8 +197,11 @@ App 编译环境：
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.com
 export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false
 export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
 ```
+
+`false` 是当前正确值：构建会把 `catalog.r2.json` 编入小程序，启动和手动刷新均不会请求尚未发布的远端目录。完成第 8 节上传并通过公开校验后，才可改为 `true` 构建新版本。
 
 微信公众平台必须加入：
 
@@ -238,11 +241,14 @@ TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom \
   npm run validate:catalog -- https://rom.sid.mom/catalog/v2/roms.json
 ```
 
+验证通过后设置 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=true` 并重新构建；远端启用前的已发布包继续使用内置目录，不受远端 404 影响。
+
 回滚时先确认旧目录引用的对象仍存在，再把对应 archive 文件覆盖到 current 路径。目录缓存只有在新目录完整通过校验时才替换；失败时客户端保留上一份有效缓存并标记为缓存目录。
 
 ## 9. 客户端行为
 
 - 首页默认显示 ROM 广场，并可切换“我的游戏”和“游玩记录”。
+- 当前包以 981 项内置目录启动；远端开关关闭时刷新不发送网络请求，不会产生 `catalog/v2/roms.json` 404。
 - 981 个条目支持标题、object key、地区、语言、游戏代码和分类搜索；首页每批渲染 60 条，长标题在列表中省略，详情页完整显示。
 - 广场使用 catalog `id` 判断安装关系；下载完成后把 catalog `id` 与本地 `romId` 关联。
 - 详情页展示 R2 object key、字节大小、地区/语言、ETag、权利标记、本地内容 ID、存档和游玩记录。

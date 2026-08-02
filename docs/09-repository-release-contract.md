@@ -5,7 +5,7 @@
 | 仓库 | 初始提交 | 当前 HEAD | 输入 | 发布产物 |
 | --- | --- | --- | --- | --- |
 | `minigba-core` | `58bb57e` | `5045490add4e9691d1c005aeb84c9886d2489536` | mGBA `26b7884bc25a5933960f3cdcd98bac1ae14d42e2`、emsdk 6.0.4 | `minigba-core.wasm`、SHA-256、ABI/build ID、SBOM、许可证 |
-| `minigba-app` | `7284856` | `03ab28ac108dbf5d441c19abb3f5e193dce5be2b` | Core WASM + manifest、API base URL、R2 ROM manifest URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、R2 目录校验、上传记录 |
+| `minigba-app` | `7284856` | `87bf9e09f241b1f53b4f16d305b076e04ff76b24` | Core WASM + manifest、API base URL、R2 ROM manifest URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、R2 目录校验、上传记录 |
 | `minigba-api` | `07f4b73` | `3775df99bbb53cf2df4c71fd23dea0a419374832` | Go 1.26.5、PostgreSQL 14+、微信凭证 | Linux amd64 release tar、SHA-256、OpenAPI、SBOM、许可证 |
 
 每个目录都是独立 Git repository。不得把三者改回 npm workspace、Git subtree 或单仓库隐式相对依赖。根目录 `docs/` 是交付基线，不参与任一运行时依赖。
@@ -36,8 +36,8 @@
 ## 4. API 到 App 的交接
 
 - `minigba-api/api/openapi.yaml` 是网络契约源。
-- App 仅通过 `TARO_APP_API_BASE_URL` 注入 HTTPS origin，通过 `TARO_APP_ROM_CATALOG_URL` 注入 R2 manifest，通过 `TARO_APP_ROM_DOWNLOAD_HOSTS` 注入授权下载 host allowlist；源码不得写死生产地址。
-- R2 manifest 是 App 的独立发布输入；正式构建必须远程验证 schema v2、唯一 catalog ID/object key、ROM 长度和 URL host。ROM 不要求预置 SHA-256；目录失败仍必须阻断候选发布。
+- App 仅通过 `TARO_APP_API_BASE_URL` 注入 HTTPS origin，通过 `TARO_APP_ROM_CATALOG_URL` 和 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED` 控制远端 R2 manifest，通过 `TARO_APP_ROM_DOWNLOAD_HOSTS` 注入授权下载 host allowlist；源码不得包含写凭证。
+- `catalog.r2.json` 是 App 的内置发布输入；远端开关关闭时必须本地验证该文件且运行时不得请求 manifest。远端开关启用时必须先远程验证 schema v2、唯一 catalog ID/object key、ROM 长度和 URL host。ROM 不要求预置 SHA-256；目录失败仍必须阻断候选发布。
 - staging 先完成登录、上传、历史、409 冲突、删除与账号删除往返，再生成候选小程序。
 - 微信 request 合法域名必须是备案/审核允许的 HTTPS 域名；IP + HTTP 高端口只用于宿主 smoke test。
 

@@ -35,7 +35,7 @@
 | FR-ROM-008 | 已实现/待环境验收 | 递归重扫、恢复孤儿、移除丢失索引、本地内容 ID 重建和损坏文件隔离 | E4 微信文件系统批量回归 |
 | FR-ROM-009 | 自动验证 | fflate 单 ROM ZIP；条目数、路径、总大小、压缩比和多 ROM 限制；Vitest 覆盖合法/恶意包 | 大 ZIP 真机内存测试 |
 | FR-ROM-010 | P2 延期 | 未实现 IPS/UPS/BPS，符合首版范围 | 后续版本另立设计 |
-| FR-ROM-011 | 已实现/待环境验收 | `RomCatalogClient` 从构建时 URL 读取 R2 manifest，15 分钟缓存并在失败时保留 stale 缓存；首页本地数据独立加载 | E9 真实 R2 URL 与断网回归 |
+| FR-ROM-011 | 已实现/待环境验收 | `RomCatalogClient` 默认读取内置 981 项目录且零 manifest 请求；远端开关启用后读取构建时 URL、缓存 15 分钟并在失败时回退缓存/内置目录 | E9 远端 URL 与断网回归 |
 | FR-ROM-012 | 自动验证 | schema v2、时间、2,000 项上限、唯一 catalog ID/object key、长度、HTTPS、精确 host 和可选元数据全量校验；981 条真实目录已通过脚本 | E6 权利证据人工审核 |
 | FR-ROM-013 | 已实现/待环境验收 | `importCatalogItem` 校验 HTTP 200、响应/文件长度和 Header 后才计算本地内容 ID 并原子入库，不比对预置 SHA-256 | E4/E9 真机 R2 下载 |
 | FR-ROM-014 | 已实现/待环境验收 | 首页广场支持搜索、分类、精选排序、缓存标识、刷新、安装状态和下载进度 | E4 长文本/弱网视觉走查 |

@@ -17,11 +17,12 @@
 - TypeScript typecheck、ESLint、Vitest 和 Taro 4.2.1 weapp production build 通过。
 - 微信开发者工具 2.01.2510290 暴露的 WXSS 通配选择器兼容问题已修复；生产构建现在自动扫描全部生成 WXSS，并在发现不受支持的通配选择器时阻断。
 - 开发者工具的 `3.17.0` 基础库缓存曾出现下载不完整和 MD5 校验失败，导致模拟器在业务代码执行前返回 HTTP 500。工程现固定并构建校验 `libVersion: 3.16.1`；开发者工具重新完整下载该版本后，普通模式冷启动日志记录 `mainframe?v=3.16.1`、`finish load user code` 和 `webview page ready`，且不再出现 500、MD5、WXSS 或路由超时。
-- 15 个测试文件、57 个测试通过；语句覆盖率 `63.53%`、分支 `58.05%`、函数 `65.26%`、行 `78.00%`。R2 schema v2 测试覆盖相对 URL、host allowlist、重复 catalog ID/object key、URL 与 object key 一致性、可选许可、无预置 digest 和缓存回退；本地内容 ID、输入、ZIP、存档、云同步、诊断和游玩计时测试继续通过。
+- 游客模式中的 `webapi_getwxaasyncsecinfo:fail` 和 `WAServiceMainContext timeout` 来自开发者工具安全服务限制，调用栈不包含 App 模块；必须登录开发者工具并使用有权限的真实 AppID 才能消除。Chromium 的 SharedArrayBuffer deprecation 是模拟器内核提示；当前 Core 不导入共享内存或 pthread，不属于本项目运行错误。
+- 16 个测试文件、58 个测试通过；语句覆盖率 `63.53%`、分支 `58.05%`、函数 `65.26%`、行 `78.00%`。R2 schema v2 测试覆盖相对 URL、host allowlist、重复 catalog ID/object key、URL 与 object key 一致性、可选许可、无预置 digest、缓存回退，以及远端关闭时 981 项内置目录零请求启动；本地内容 ID、输入、ZIP、存档、云同步、诊断和游玩计时测试继续通过。
 - 已实现 R2 ROM 广场、目录缓存/刷新、搜索分类、下载进度、游戏详情、真实运行区间计时、逐次游玩记录，以及原有授权下载、ROM 重扫/隔离、ZIP 安全限制、`.sav` 导入、状态预览、截图、快进、音频、控制、存储、诊断和云同步管理。
-- 主包及非播放器页面 `489699` 字节；播放器分包 `542094` 字节；运行产物总计 `1031793` 字节。SBOM、许可证表和审计 JSON 位于忽略的 `artifacts/reports/`，不会进入微信上传根目录。
+- 内置 981 项目录后，主包及非播放器页面 `879298` 字节；播放器分包 `542094` 字节；运行产物总计 `1421392` 字节，仍低于微信主包 2 MiB 限制。SBOM、许可证表和审计 JSON 位于忽略的 `artifacts/reports/`，不会进入微信上传根目录。
 - 分包 WASM 摘要与 Core 候选一致。
-- `TARO_APP_API_BASE_URL`、`TARO_APP_ROM_CATALOG_URL` 和 `TARO_APP_ROM_DOWNLOAD_HOSTS` 均为编译期常量。正式发布脚本拒绝空/非 HTTPS 目录，先验证远程 schema v2 manifest，再构建小程序；客户端校验目录 ID/object key、URL、精确长度和 GBA Header，不要求或比对预置 ROM SHA-256。
+- `TARO_APP_API_BASE_URL`、`TARO_APP_ROM_CATALOG_URL`、`TARO_APP_ROM_CATALOG_REMOTE_ENABLED` 和 `TARO_APP_ROM_DOWNLOAD_HOSTS` 均为编译期常量。远端关闭时，启动与强制刷新只读内置 981 项目录且不发送 manifest 请求；远端启用时先验证 schema v2 manifest。客户端校验目录 ID/object key、URL、精确长度和 GBA Header，不要求或比对预置 ROM SHA-256。
 
 ### Cloudflare R2
 
@@ -46,7 +47,7 @@
 
 - 三个发布守卫都会拒绝非 Ubuntu 22.04、VM、Docker/LXC 容器和 WSL。
 - Core WASM、App 候选构建和 API release 构建都会拒绝脏 Git 工作树。
-- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `03ab28ac108dbf5d441c19abb3f5e193dce5be2b`、API `3775df99bbb53cf2df4c71fd23dea0a419374832`，工作树均为空且 `git fsck` 通过。
+- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `87bf9e09f241b1f53b4f16d305b076e04ff76b24`、API `3775df99bbb53cf2df4c71fd23dea0a419374832`，工作树均为空且 `git fsck` 通过。
 - `11-requirement-traceability.md` 已逐项覆盖产品文档中的全部 101 个 FR/NFR 标识，并区分自动验证、待环境验收、外部前置与 P2 延期。
 
 ## 2. 仍需外部环境完成

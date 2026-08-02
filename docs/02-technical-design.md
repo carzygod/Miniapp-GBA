@@ -160,10 +160,10 @@ minigba-api/                     # Go 云存档服务仓库
 
 职责：
 
-- 从 `TARO_APP_ROM_CATALOG_URL` 获取 R2 上的只读 JSON manifest，不持有 R2 S3 凭证。
+- 内置经过校验的 `catalog.r2.json` 作为启动目录；仅当 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=true` 时从 `TARO_APP_ROM_CATALOG_URL` 获取 R2 上的只读 JSON manifest，不持有 R2 S3 凭证。
 - 对 schema v2 版本、生成时间、2,000 项上限、唯一目录 ID/object key、精确长度、HTTPS URL 和 host allowlist 做全量校验；许可与 ETag 存在时只校验字段格式并用于展示。
 - 允许下载和封面 URL 相对 manifest 解析，但解析后的 host 仍必须命中发布白名单。
-- 将最后一次完整通过校验的目录缓存 15 分钟；网络失败可显示已验证缓存，并在 UI 标记为缓存目录。
+- 远端模式将最后一次完整通过校验的目录缓存 15 分钟；网络失败时依次回退到已验证缓存和内置目录。远端模式关闭时，启动和手动刷新均不发起 manifest 请求。
 - manifest 任一技术字段失败时拒绝整个新目录，不以“尽量展示”方式混入结构损坏或越权 host 条目。
 
 R2 只承载运营方授权目录和对象，不承担用户 ROM 上传。用户本地导入内容不会反向写入 R2。

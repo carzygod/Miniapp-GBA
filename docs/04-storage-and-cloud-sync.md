@@ -141,10 +141,10 @@ covers/<catalog-id>.<content-hash>.webp
 
 客户端处理顺序：
 
-1. 校验 `TARO_APP_ROM_CATALOG_URL` 使用 HTTPS 且 host 在 `TARO_APP_ROM_DOWNLOAD_HOSTS`。
-2. 获取 JSON 后一次性验证 schema v2、生成时间、bucket、最多 2,000 项及唯一目录 ID/object key。
+1. 构建时把已验证的 `catalog.r2.json` 编入主包；远端未发布时关闭 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED`，不发送 manifest 请求。
+2. 远端模式启用时，校验 `TARO_APP_ROM_CATALOG_URL` 使用 HTTPS 且 host 在 `TARO_APP_ROM_DOWNLOAD_HOSTS`，获取 JSON 后一次性验证 schema v2、生成时间、bucket、最多 2,000 项及唯一目录 ID/object key。
 3. 将相对对象 URL 基于 manifest URL 解析，再次检查 HTTPS、无凭证、无 fragment 和 host allowlist。
-4. 仅缓存完整通过验证的目录；新目录失败时保留旧缓存并标为 stale。
+4. 仅缓存完整通过验证的远端目录；新目录失败时回退到旧缓存或内置目录并标为 stale。
 5. 用户选择条目后通过 `downloadFile` 下载，验证 HTTP 200、声明长度、落盘长度和 GBA Header，不要求预置 SHA-256。
 6. 入库时计算本地内容 ID，并使用其分片路径原子提交，同时保存 catalog ID/object key/ETag 关联；失败时不创建半成品索引。
 

@@ -256,12 +256,15 @@ cd /srv/build/minigba-app
 install -m 0644 /srv/build/minigba-core/dist/minigba-core.wasm src/assets/minigba-core.wasm
 export TARO_APP_API_BASE_URL=https://api.example.com:38443
 export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false
 export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
 npm run lint
 npm run test
-npm run validate:catalog -- "$TARO_APP_ROM_CATALOG_URL"
+npm run validate:catalog -- catalog.r2.json
 npm run build:weapp
 ```
+
+在 `catalog/v2/roms.json` 公开读取和远程校验通过之前，必须保持远端开关为 `false`。上传完成后先验证远端目录，再改为 `true` 构建候选版本；`scripts/build-release.sh` 会按该开关选择校验内置或远端目录。
 
 构建后验证：
 
