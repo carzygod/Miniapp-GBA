@@ -1,7 +1,7 @@
 # 需求实现与验收追踪矩阵
 
 版本：1.0  
-盘点日期：2026-08-01
+盘点日期：2026-08-02
 基线：`01-product-requirements.md`、三个独立仓库当前工作树
 
 ## 1. 状态定义
@@ -20,7 +20,7 @@
 | 需求 | 状态 | 实现与自动证据 | 剩余验收 |
 | --- | --- | --- | --- |
 | FR-ACC-001 | 自动验证 | App 本地游戏库、播放器、存档均不要求 token；`src/cloud/sync-service.ts` 仅在显式同步时检查登录 | 真机游客全流程 |
-| FR-ACC-002 | 已实现/待环境验收 | `CloudClient.login` 调用 `wx.login`；API 服务端交换 code，App 不含 AppSecret | E3 微信真实凭证 |
+| FR-ACC-002 | 已实现/待环境验收 | AppID `wx4a8213e3dfa88565` 已固定并进入产物门禁；`CloudClient.login` 调用 `wx.login`；API 从 root 管理文件读取 AppSecret 并交换 code，App 不含 AppSecret | E3 服务端凭证落地与真实登录 |
 | FR-ACC-003 | 自动验证 | `library-repository.ts` 首次导入前记录版权确认版本和时间 | 微信弹窗走查 |
 | FR-ACC-004 | 已实现/待环境验收 | 设置页首次云登录展示数据类型并要求明确同意 | E6 隐私文本审核 |
 | FR-ACC-005 | 自动验证 | 设置页退出；只删除 session token，不删除本地目录 | 真机退出重登 |
@@ -147,7 +147,7 @@
 | --- | --- | --- |
 | E1 | Ubuntu 22.04 x86_64 裸机，不是 VM/容器/WSL | Core native CTest、WASM rebuild/hash、API race 全通过 |
 | E2 | Ubuntu 22.04 裸机上的专用 PostgreSQL `_test` 数据库 | 条件集成测试无 skip，迁移、保留、删除、GC、重启幂等通过 |
-| E3 | 真实微信 AppID/AppSecret、合法 HTTPS request 域名和发布私钥 | 登录、上传、下载、409、历史、删除端到端证据 |
+| E3 | 已固定的真实微信 AppID、服务端 AppSecret 文件、合法 HTTPS request 域名和发布私钥 | AppID 构建校验已完成；仍需登录、上传、下载、409、历史、删除端到端证据 |
 | E4 | iOS/Android 各至少三档真实设备 | 30 分钟、横竖屏、多点、WebAudio、后台、强杀、断网矩阵 |
 | E5 | 至少 20 个来源和许可证可追溯的 homebrew/测试 ROM | CPU、视频、音频、RTC、SRAM、Flash、EEPROM 报告 |
 | E6 | 上线主体、地区和类目对应的法律/平台审核 | 隐私政策、用户协议、ROM 权利、许可证和审核结论 |

@@ -78,10 +78,10 @@ npm run build:weapp
 
 `catalog.r2.json` is generated from the authenticated R2 object listing and currently contains 981 `gba/` objects. It is also bundled as the startup catalog so the ROM plaza does not depend on an unpublished remote manifest. Keep `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false` until the same schema v2 file is publicly readable at `TARO_APP_ROM_CATALOG_URL`; set it to `true` only after remote validation succeeds. `r2-objects.example.json` documents the generator input. Catalog schema v2 requires a stable catalog ID, exact object key, byte length and allowlisted HTTPS URL; it does not contain or validate a predeclared SHA-256. Downloads still require HTTP 200, matching response/file length and a valid GBA header before atomic import. A local content ID is calculated after import only for deduplication and save isolation. R2 credentials are never compiled into the mini program.
 
-For an approved AppID, CI private key, and already-built `dist`:
+The checked-in WeChat AppID is `wx4a8213e3dfa88565`. The AppSecret is server-only and must never be added to this repository or the mini-program build. For the matching CI private key and already-built `dist`:
 
 ```bash
-MINIGBA_WECHAT_APP_ID=wx... \
+MINIGBA_WECHAT_APP_ID=wx4a8213e3dfa88565 \
 MINIGBA_MINIPROGRAM_PRIVATE_KEY=/secure/private.key \
 MINIGBA_RELEASE_VERSION=0.1.0 \
 ./scripts/upload.sh

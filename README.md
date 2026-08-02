@@ -9,9 +9,9 @@ Miniapp GBA 是一个面向微信小程序的 GBA 模拟器系统。项目由 Ta
 - 微信小程序已实现 R2 ROM 广场、我的游戏、逐次游玩记录、游戏详情、ROM 导入与隔离、完整虚拟按键、Canvas 播放器、本地电池存档、即时状态存档、截图、快进、音频和诊断页面。
 - 云端已实现微信身份交换、会话刷新、版本历史、乐观并发、冲突副本、删除与账户清除流程。
 - Cloudflare R2 的 `gba/` 已实际核对：981 个 `.gba`、合计 `7,725,253,970` 字节；本地 `catalog.r2.json` 已生成并通过 schema v2 校验。
-- App 的 TypeScript、ESLint、56 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
+- App 的 TypeScript、ESLint、58 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
 - 微信开发者工具 2.01.2510290 已验证使用基础库 `3.16.1` 正常加载；构建会阻止不兼容 WXSS 和错误的基础库版本进入 `dist/`。
-- Ubuntu 22.04 裸机、真实微信 AppID、HTTPS 合法域名及 iOS/Android 真机矩阵仍是正式发布前置条件。
+- 微信小程序 AppID 已固定为 `wx4a8213e3dfa88565` 并进入构建门禁；AppSecret 只允许写入 Ubuntu 服务端 root 管理的凭证文件。Ubuntu 22.04 裸机、HTTPS 合法域名、上传私钥及 iOS/Android 真机矩阵仍是正式发布前置条件。
 
 详细证据见 [当前验证报告](./docs/10-validation-report.md) 和 [需求追踪矩阵](./docs/11-requirement-traceability.md)。
 
@@ -123,7 +123,7 @@ go vet ./...
 - 云端默认仅保存电池存档和即时状态存档，不保存 ROM。
 - R2 catalog 使用独立目录 ID、object key、精确长度和白名单 HTTPS URL；ROM 下载不要求预置 SHA-256，客户端不包含 R2/S3 写凭证，也不直接列举桶对象。
 - 本地与云端数据均按 ROM SHA-256 和账户作用域隔离。
-- 正式发布必须完成真实微信凭证、合法 HTTPS 域名、双端真机和数据恢复验收。
+- 正式发布必须完成服务端微信凭证落地、合法 HTTPS 域名、双端真机和数据恢复验收。
 
 ## 文档
 

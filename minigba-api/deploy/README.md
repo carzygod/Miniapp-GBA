@@ -16,7 +16,7 @@ The build and deployment scripts reject virtual machines, containers, and WSL. T
    MINIGBA_PUBLIC_PORT=38443 sudo -E ./deploy/bootstrap-ubuntu.sh
    ```
 
-3. Set `MINIGBA_WECHAT_APP_ID` in `/etc/minigba/api.env`, write the AppSecret to `/etc/minigba/credentials/wechat-app-secret`, and keep both files owned by `root:minigba` with mode `0640`.
+3. Keep `MINIGBA_WECHAT_APP_ID=wx4a8213e3dfa88565` in `/etc/minigba/api.env`, write the matching AppSecret to `/etc/minigba/credentials/wechat-app-secret`, and keep both files owned by `root:minigba` with mode `0640`.
 
 4. Transfer the release archive and its `.sha256`, then install:
 

@@ -5,8 +5,8 @@
 | 仓库 | 初始提交 | 当前 HEAD | 输入 | 发布产物 |
 | --- | --- | --- | --- | --- |
 | `minigba-core` | `58bb57e` | `5045490add4e9691d1c005aeb84c9886d2489536` | mGBA `26b7884bc25a5933960f3cdcd98bac1ae14d42e2`、emsdk 6.0.4 | `minigba-core.wasm`、SHA-256、ABI/build ID、SBOM、许可证 |
-| `minigba-app` | `7284856` | `87bf9e09f241b1f53b4f16d305b076e04ff76b24` | Core WASM + manifest、API base URL、R2 ROM manifest URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、R2 目录校验、上传记录 |
-| `minigba-api` | `07f4b73` | `3775df99bbb53cf2df4c71fd23dea0a419374832` | Go 1.26.5、PostgreSQL 14+、微信凭证 | Linux amd64 release tar、SHA-256、OpenAPI、SBOM、许可证 |
+| `minigba-app` | `7284856` | `c65d25d193fd9ed2c943f249a39cf29137a660ec` | Core WASM + manifest、API base URL、R2 ROM manifest URL、授权 ROM host allowlist | 微信小程序 `dist/`、SBOM/审计报告、R2 目录校验、上传记录 |
+| `minigba-api` | `07f4b73` | `962e0bbbe26a82d1001ba62fb68e5bc468d1e859` | Go 1.26.5、PostgreSQL 14+、微信凭证 | Linux amd64 release tar、SHA-256、OpenAPI、SBOM、许可证 |
 
 每个目录都是独立 Git repository。不得把三者改回 npm workspace、Git subtree 或单仓库隐式相对依赖。根目录 `docs/` 是交付基线，不参与任一运行时依赖。
 

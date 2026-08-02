@@ -14,6 +14,7 @@ MiniGBA API is the standalone Go service for WeChat authentication, versioned cl
 ## Features
 
 - WeChat code exchange without exposing AppSecret to clients.
+- Production AppID `wx4a8213e3dfa88565`; the matching AppSecret is read only from the root-managed file named by `MINIGBA_WECHAT_APP_SECRET_FILE`.
 - Short-lived HMAC access tokens, refresh, logout, and revocable sessions.
 - Binary save uploads with SHA-256, `If-Match` revisions, and idempotency keys.
 - Battery, manual state, and auto-state version history.

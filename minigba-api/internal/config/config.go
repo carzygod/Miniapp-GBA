@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +26,11 @@ type Config struct {
 	TokenTTL        time.Duration
 	DevelopmentAuth bool
 }
+
+var (
+	wechatAppIDPattern     = regexp.MustCompile(`^wx[0-9a-f]{16}$`)
+	wechatAppSecretPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
+)
 
 func Load() (Config, error) {
 	c := Config{
@@ -71,8 +78,11 @@ func Load() (Config, error) {
 		if c.DevelopmentAuth {
 			return Config{}, errors.New("MINIGBA_DEV_AUTH must be false in production")
 		}
-		if c.WechatAppID == "" || c.WechatAppSecret == "" {
-			return Config{}, errors.New("WeChat credentials are required in production")
+		if !wechatAppIDPattern.MatchString(c.WechatAppID) {
+			return Config{}, errors.New("MINIGBA_WECHAT_APP_ID must be a valid WeChat Mini Program AppID")
+		}
+		if !wechatAppSecretPattern.MatchString(c.WechatAppSecret) {
+			return Config{}, errors.New("MINIGBA_WECHAT_APP_SECRET_FILE must contain a valid AppSecret")
 		}
 		if len(c.TokenSigningKey) < 32 {
 			return Config{}, errors.New("token signing key must contain at least 32 bytes")
@@ -85,6 +95,16 @@ func readSecret(fileEnv string) (string, error) {
 	path := strings.TrimSpace(os.Getenv(fileEnv))
 	if path == "" {
 		return "", nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("stat %s: %w", fileEnv, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("%s must point to a regular file", fileEnv)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o007 != 0 {
+		return "", fmt.Errorf("%s must not be accessible by other users", fileEnv)
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {

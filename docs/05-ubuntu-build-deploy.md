@@ -339,7 +339,7 @@ MINIGBA_LISTEN_ADDR=127.0.0.1:8080
 MINIGBA_DATABASE_URL=postgres://minigba@/minigba?host=/var/run/postgresql&sslmode=disable
 MINIGBA_BLOB_ROOT=/srv/minigba/blobs
 MINIGBA_TEMP_ROOT=/srv/minigba/tmp
-MINIGBA_WECHAT_APP_ID=<appid>
+MINIGBA_WECHAT_APP_ID=wx4a8213e3dfa88565
 MINIGBA_WECHAT_APP_SECRET_FILE=/etc/minigba/credentials/wechat-app-secret
 MINIGBA_TOKEN_SIGNING_KEY_FILE=/etc/minigba/credentials/token-signing-key
 MINIGBA_MAX_SAVE_BYTES=8388608
@@ -542,7 +542,7 @@ sudo journalctl -u minigba-api --since '-5 minutes' --no-pager
 
 ### 15.1 凭证
 
-- AppID 从发布环境配置读取。
+- AppID 固定为 `wx4a8213e3dfa88565`，上传环境值必须与 `project.config.json` 一致。
 - 上传私钥位于 `/etc/minigba-build/wechat-upload.key`，模式 0600。
 - Build Host 出网 IP 配置在微信后台白名单。
 - 私钥不进入仓库、npm cache、构建日志和产物。
@@ -553,7 +553,7 @@ sudo journalctl -u minigba-api --since '-5 minutes' --no-pager
 
 ```bash
 export PATH=/opt/minigba/toolchains/node/bin:$PATH
-export MINIGBA_WECHAT_APP_ID=<appid>
+export MINIGBA_WECHAT_APP_ID=wx4a8213e3dfa88565
 export MINIGBA_MINIPROGRAM_PRIVATE_KEY=/etc/minigba-build/wechat-upload.key
 export MINIGBA_RELEASE_VERSION=<semver>
 export MINIGBA_RELEASE_DESCRIPTION="Release <release-id>"
