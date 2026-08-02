@@ -67,6 +67,7 @@ The checked-in development WASM asset is provenance-pinned in `src/assets/minigb
 ```bash
 export TARO_APP_API_BASE_URL=https://api.example.invalid
 export TARO_APP_ROM_CATALOG_URL=https://rom.sid.mom/catalog/v2/roms.json
+export TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false
 export TARO_APP_ROM_DOWNLOAD_HOSTS=rom.sid.mom
 npm run typecheck
 npm run lint
@@ -75,7 +76,7 @@ npm run validate:catalog -- catalog.example.json
 npm run build:weapp
 ```
 
-`catalog.r2.json` is generated from the authenticated R2 object listing and currently contains 981 `gba/` objects. `r2-objects.example.json` documents the generator input. Catalog schema v2 requires a stable catalog ID, exact object key, byte length and allowlisted HTTPS URL; it does not contain or validate a predeclared SHA-256. Downloads still require HTTP 200, matching response/file length and a valid GBA header before atomic import. A local content ID is calculated after import only for deduplication and save isolation. R2 credentials are never compiled into the mini program.
+`catalog.r2.json` is generated from the authenticated R2 object listing and currently contains 981 `gba/` objects. It is also bundled as the startup catalog so the ROM plaza does not depend on an unpublished remote manifest. Keep `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false` until the same schema v2 file is publicly readable at `TARO_APP_ROM_CATALOG_URL`; set it to `true` only after remote validation succeeds. `r2-objects.example.json` documents the generator input. Catalog schema v2 requires a stable catalog ID, exact object key, byte length and allowlisted HTTPS URL; it does not contain or validate a predeclared SHA-256. Downloads still require HTTP 200, matching response/file length and a valid GBA header before atomic import. A local content ID is calculated after import only for deduplication and save isolation. R2 credentials are never compiled into the mini program.
 
 For an approved AppID, CI private key, and already-built `dist`:
 

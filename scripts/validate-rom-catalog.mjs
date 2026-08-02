@@ -22,13 +22,19 @@ for(const[itemIndex,item]of value.items.entries()){
   if(decodedPath(downloadUrl)!==`/${item.objectKey}`)throw new Error(`${label} downloadUrl does not match objectKey`)
   if(item.coverUrl!==undefined)validateAssetUrl(item.coverUrl,resolutionBase,allowed,`${label} coverUrl`)
   if(item.genres!==undefined&&(!Array.isArray(item.genres)||item.genres.length>8||item.genres.some(value=>!short(value,24))))throw new Error(`${label} has invalid genres`)
+  if(item.description!==undefined&&!short(item.description,240))throw new Error(`${label} has an invalid description`)
+  if(item.region!==undefined&&!short(item.region,24))throw new Error(`${label} has an invalid region`)
+  if(item.language!==undefined&&!short(item.language,48))throw new Error(`${label} has an invalid language`)
+  if(item.featured!==undefined&&typeof item.featured!=='boolean')throw new Error(`${label} has an invalid featured flag`)
+  if(item.updatedAt!==undefined&&!validDate(item.updatedAt))throw new Error(`${label} has an invalid updatedAt`)
   if(item.license!==undefined&&(!item.license||typeof item.license!=='object'||!short(item.license.name,80)))throw new Error(`${label} has invalid license metadata`)
-  if(item.license?.url!==undefined)validateHttps(item.license.url,`${label} license URL`)
+  if(item.license?.url!==undefined){if(!short(item.license.url,300))throw new Error(`${label} has an invalid license URL`);validateHttps(item.license.url,`${label} license URL`)}
+  if(item.license?.notice!==undefined&&!short(item.license.notice,240))throw new Error(`${label} has an invalid license notice`)
 }
 console.log(JSON.stringify({validated:true,source,bucket:value.bucket,items:value.items.length,generatedAt:value.generatedAt}))
 
 async function fetchRemote(url){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15_000);try{const response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});if(!response.ok)throw new Error(`ROM catalog request failed (${response.status})`);return await response.text()}finally{clearTimeout(timer)}}
-function validateAssetUrl(value,base,hosts,label){if(typeof value!=='string'||!value.trim())throw new Error(`${label} is missing`);const url=validateHttps(new URL(value,base).toString(),label);if(!hosts.has(url.host.toLowerCase()))throw new Error(`${label} host is not in TARO_APP_ROM_DOWNLOAD_HOSTS`);return url}
+function validateAssetUrl(value,base,hosts,label){if(!short(value,600))throw new Error(`${label} is missing or too long`);const url=validateHttps(new URL(value,base).toString(),label);if(!hosts.has(url.host.toLowerCase()))throw new Error(`${label} host is not in TARO_APP_ROM_DOWNLOAD_HOSTS`);return url}
 function validateHttps(value,label){let url;try{url=new URL(value)}catch{throw new Error(`${label} is invalid`)}if(url.protocol!=='https:'||url.username||url.password||url.hash)throw new Error(`${label} must be credential-free HTTPS without a fragment`);return url}
 function short(value,max){return typeof value==='string'&&Boolean(value.trim())&&value.trim().length<=max}
 function validId(value){return typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)}
