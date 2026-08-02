@@ -1,6 +1,7 @@
 'use strict'
 
 const path = require('node:path')
+const fs = require('node:fs')
 const ci = require('miniprogram-ci')
 
 const required = name => {
@@ -9,8 +10,12 @@ const required = name => {
   return value
 }
 
+const appid = required('MINIGBA_WECHAT_APP_ID')
+const configuredAppID = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'project.config.json'), 'utf8')).appid
+if (appid !== configuredAppID) throw new Error('MINIGBA_WECHAT_APP_ID does not match project.config.json')
+
 const project = new ci.Project({
-  appid: required('MINIGBA_WECHAT_APP_ID'),
+  appid,
   type: 'miniProgram',
   projectPath: path.resolve(__dirname, '..'),
   privateKeyPath: path.resolve(required('MINIGBA_MINIPROGRAM_PRIVATE_KEY')),

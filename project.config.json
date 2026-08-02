@@ -2,7 +2,7 @@
   "miniprogramRoot": "dist/",
   "projectname": "minigba",
   "description": "MiniGBA local ROM player and cloud save client",
-  "appid": "touristappid",
+  "appid": "wx4a8213e3dfa88565",
   "libVersion": "3.16.1",
   "setting": {
     "es6": true,
