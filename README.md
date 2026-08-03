@@ -79,6 +79,23 @@ npm run build:weapp
 
 远端目录尚未发布时保持 `TARO_APP_ROM_CATALOG_REMOTE_ENABLED=false`，小程序直接使用随包内置的 981 项目录且不会请求 404。仅在远端 schema v2 文件公开校验通过后将其改为 `true`。
 
+## 微信开发者工具排错
+
+开发者工具必须打开 `minigba-app/dist`，并使用项目固定的基础库 `3.15.2`。源码或构建配置变更后执行：
+
+```bash
+cd minigba-app
+npm run build:weapp
+node scripts/validate-weapp-output.mjs
+```
+
+有效产物会报告 AppID `wx4a8213e3dfa88565`、ROM host `rom.sid.mom`、两套 ROM host Set 和 8 个 WXSS 文件。随后在开发者工具中执行“编译 -> 清缓存并编译”；若仍显示旧错误，应从最近项目移除旧项目并重新导入同一 `dist` 目录。
+
+- “下载地址域名不在发布白名单中”来自应用内安全校验，不是微信平台校验。开发者工具的“不校验合法域名”开关不会绕过它；当前构建已默认并校验 `rom.sid.mom`。
+- `[object Object]` 曾由微信文件 API 的 `{errMsg, errno}` 失败对象导致。当前文件系统适配器会把首次缺失目录视为空数据，并显示真实 `errMsg`。
+- `Failed to fetch` 不应出现在 API 地址为空的本地构建中，因为云登录和同步会关闭。若仍出现，需记录控制台中的完整请求 URL 和 initiator，不能只依据开发者工具的内部堆栈判断。
+- `SharedArrayBuffer` deprecation、HarmonyOS 文章推荐和不含业务文件的 `WAServiceMainContext timeout` 属于开发者工具提示，不等同于 App 业务错误。
+
 ## 构建模拟器核心
 
 发行核心只支持 Ubuntu 22.04 x86_64 裸机。安装 CMake、Ninja、Python 3 和项目固定的 emsdk 后执行：

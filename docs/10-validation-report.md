@@ -51,7 +51,7 @@
 
 - 三个发布守卫都会拒绝非 Ubuntu 22.04、VM、Docker/LXC 容器和 WSL。
 - Core WASM、App 候选构建和 API release 构建都会拒绝脏 Git 工作树。
-- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `790b2c32e66f3245ab44dd588f61d0eae4cd44a2`、API `962e0bbbe26a82d1001ba62fb68e5bc468d1e859`，工作树均为空且 `git fsck` 通过。
+- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `be277daa559ade0c66075ca5c3e48a68746f769e`、API `962e0bbbe26a82d1001ba62fb68e5bc468d1e859`，工作树均为空且 `git fsck` 通过。
 - `11-requirement-traceability.md` 已逐项覆盖产品文档中的全部 101 个 FR/NFR 标识，并区分自动验证、待环境验收、外部前置与 P2 延期。
 
 ## 2. 仍需外部环境完成
