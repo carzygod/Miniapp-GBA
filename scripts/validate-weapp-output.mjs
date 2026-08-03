@@ -7,7 +7,7 @@ if(!wxssFiles.length)throw new Error('dist does not contain generated WXSS files
 
 const project=JSON.parse(readFileSync(join(root,'project.config.json'),'utf8'))
 if(project.appid!=='wx4a8213e3dfa88565')throw new Error(`unexpected WeChat AppID: ${project.appid??'missing'}`)
-if(project.libVersion!=='3.16.1')throw new Error(`unexpected WeChat base library: ${project.libVersion??'missing'}`)
+if(project.libVersion!=='3.15.2')throw new Error(`unexpected WeChat base library: ${project.libVersion??'missing'}`)
 
 const universalSelector=/(^|[,{>+~]\s*)\*(?=\s*(?:[,{>+~.:#\[]|$))/m
 const invalid=wxssFiles.filter(path=>universalSelector.test(readFileSync(path,'utf8')))

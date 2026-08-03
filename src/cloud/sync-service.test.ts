@@ -2,7 +2,7 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 import type {CloudSaveHead,SaveManifest,SyncTask} from '../domain/models'
 
 const state=vi.hoisted(()=>({
-  settings:{cloudSync:true,cloudStateSync:true},scope:'223e4567-e89b-42d3-a456-426614174000',loggedIn:true,
+  settings:{cloudSync:true,cloudStateSync:true},scope:'223e4567-e89b-42d3-a456-426614174000',loggedIn:true,configured:true,
   tasks:[] as SyncTask[],stored:undefined as unknown,
   completed:[] as string[],retried:[] as string[],failed:[] as string[],conflicts:[] as string[],
   updates:[] as number[],cloudStates:[] as string[],
@@ -35,7 +35,7 @@ vi.mock('../services',()=>({
 vi.mock('./client',()=>{
   class CloudConflictError extends Error{constructor(readonly current:Record<string,unknown>){super('conflict')}}
   class CloudRequestError extends Error{constructor(readonly statusCode:number,message:string){super(message)}get terminal(){return[400,401,403,404,413,422].includes(this.statusCode)}}
-  return{CloudConflictError,CloudRequestError,cloudClient:{isLoggedIn:()=>state.loggedIn,upload:state.upload,download:state.download}}
+  return{CloudConflictError,CloudRequestError,cloudClient:{isLoggedIn:()=>state.loggedIn,canSync:()=>state.configured&&state.loggedIn,upload:state.upload,download:state.download}}
 })
 
 import {sha256Hex} from '../domain/sha256'
@@ -48,7 +48,7 @@ const task=():SyncTask=>({id:'123e4567-e89b-42d3-a456-426614174000',romId,kind:'
 const head=(value:string):CloudSaveHead=>({romId,kind:'battery',slot:'current',currentRevision:9,checksum:value,sizeBytes:bytes.length,coreBuildId:'core-2',updatedAt:'2026-07-28T00:00:00.000Z'})
 
 beforeEach(()=>{
-  state.settings={cloudSync:true,cloudStateSync:true};state.scope='223e4567-e89b-42d3-a456-426614174000';state.loggedIn=true;state.tasks=[task()]
+  state.settings={cloudSync:true,cloudStateSync:true};state.scope='223e4567-e89b-42d3-a456-426614174000';state.loggedIn=true;state.configured=true;state.tasks=[task()]
   state.stored={manifest:{...manifest},bytes:bytes.slice(),path:'/save/current.bin'}
   state.completed=[];state.retried=[];state.failed=[];state.conflicts=[];state.updates=[];state.cloudStates=[]
   state.upload.mockReset();state.download.mockReset()
@@ -70,6 +70,12 @@ describe('SyncService queue processing',()=>{
 
   it('never processes a queue without an authenticated account scope',async()=>{
     state.scope='anonymous';state.upload.mockResolvedValue({revision:8,checksum})
+    await new SyncService().runDue()
+    expect(state.upload).not.toHaveBeenCalled();expect(state.completed).toEqual([])
+  })
+
+  it('never processes a queue when the cloud API is not configured',async()=>{
+    state.configured=false;state.upload.mockResolvedValue({revision:8,checksum})
     await new SyncService().runDue()
     expect(state.upload).not.toHaveBeenCalled();expect(state.completed).toEqual([])
   })

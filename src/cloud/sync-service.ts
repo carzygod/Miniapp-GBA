@@ -16,7 +16,7 @@ export class SyncService{
   }
   async enqueue(manifest:SaveManifest):Promise<void>{const now=new Date().toISOString();await syncQueue.enqueue({id:uuid(),romId:manifest.romId,kind:manifest.kind,slot:manifest.slot,localRevision:manifest.localRevision,cloudRevision:manifest.cloudRevision,checksum:manifest.checksum,path:saveRepository.contentPath(manifest.romId,manifest.kind,manifest.slot),attempts:0,nextAttemptAt:now,createdAt:now})}
   async runDue():Promise<void>{
-    await this.exclusive(async()=>{if(activeScope()==='anonymous'||!loadSettings().cloudSync||!cloudClient.isLoggedIn())return;const now=new Date().toISOString(),settings=loadSettings();for(const task of await syncQueue.list()){if(task.terminal||task.nextAttemptAt>now||(task.kind!=='battery'&&!settings.cloudStateSync))continue;await this.runTask(task)}})
+    await this.exclusive(async()=>{if(activeScope()==='anonymous'||!loadSettings().cloudSync||!cloudClient.canSync())return;const now=new Date().toISOString(),settings=loadSettings();for(const task of await syncQueue.list()){if(task.terminal||task.nextAttemptAt>now||(task.kind!=='battery'&&!settings.cloudStateSync))continue;await this.runTask(task)}})
   }
   private async runTask(task:SyncTask):Promise<void>{try{
     const stored=await saveRepository.load(task.romId,task.kind,task.slot);if(!stored||stored.manifest.localRevision!==task.localRevision||stored.manifest.checksum!==task.checksum){await syncQueue.complete(task.id);return}
