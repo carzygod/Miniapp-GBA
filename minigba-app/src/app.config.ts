@@ -23,9 +23,9 @@ export default defineAppConfig({
     backgroundColor: '#141a1b',
     borderStyle: 'black',
     list: [
-      { pagePath: 'pages/library/index', text: '游玩' },
-      { pagePath: 'pages/saves/index', text: '存档' },
-      { pagePath: 'pages/settings/index', text: '设置' },
+      { pagePath: 'pages/library/index', text: '游玩', iconPath: 'assets/tabbar/game.png', selectedIconPath: 'assets/tabbar/game-active.png' },
+      { pagePath: 'pages/saves/index', text: '存档', iconPath: 'assets/tabbar/saves.png', selectedIconPath: 'assets/tabbar/saves-active.png' },
+      { pagePath: 'pages/settings/index', text: '设置', iconPath: 'assets/tabbar/settings.png', selectedIconPath: 'assets/tabbar/settings-active.png' },
     ],
   },
 })

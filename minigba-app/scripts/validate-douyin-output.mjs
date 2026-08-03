@@ -1,5 +1,6 @@
 import {existsSync,readdirSync,readFileSync,statSync} from 'node:fs'
 import {join,relative} from 'node:path'
+import {validateTabBarIcons} from './validate-tabbar-icons.mjs'
 
 const root='dist-douyin'
 if(!existsSync(root)||!statSync(root).isDirectory())throw new Error(`${root} does not exist`)
@@ -17,6 +18,7 @@ if(project.douyinProjectType!=='native')throw new Error(`unexpected Douyin proje
 
 const app=JSON.parse(readFileSync(join(root,'app.json'),'utf8'))
 if(!Array.isArray(app.pages)||!app.pages.includes('pages/library/index'))throw new Error('Douyin app.json is missing the library entry page')
+const tabBarIcons=validateTabBarIcons(root,app)
 
 const wasmPath=join(root,'player','assets','minigba-core.wasm')
 if(!existsSync(wasmPath)||statSync(wasmPath).size===0)throw new Error('Douyin output is missing the emulator WASM core')
@@ -28,7 +30,7 @@ if(javascript.includes('WXWebAssembly'))throw new Error('Douyin output still ref
 const unexpectedWeChatFiles=files.filter(path=>/\.(?:wxml|wxss)$/.test(path))
 if(unexpectedWeChatFiles.length)throw new Error(`Douyin output contains WeChat templates: ${unexpectedWeChatFiles.map(path=>relative(root,path)).join(', ')}`)
 
-console.log(JSON.stringify({validated:true,appid:project.appid,projectType:project.douyinProjectType,ttmlFiles:ttmlFiles.length,ttssFiles:ttssFiles.length,wasmBytes:statSync(wasmPath).size}))
+console.log(JSON.stringify({validated:true,appid:project.appid,projectType:project.douyinProjectType,ttmlFiles:ttmlFiles.length,ttssFiles:ttssFiles.length,tabBarIcons,wasmBytes:statSync(wasmPath).size}))
 
 function walk(directory){
   return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{

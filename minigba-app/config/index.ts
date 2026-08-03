@@ -21,6 +21,7 @@ export default defineConfig({
   copy: {
     patterns: [
       { from: 'src/assets/minigba-core.wasm', to: `${outputRoot}/player/assets/minigba-core.wasm` },
+      { from: 'src/assets/tabbar', to: `${outputRoot}/assets/tabbar` },
     ],
     options: {},
   },
