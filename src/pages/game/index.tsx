@@ -4,6 +4,7 @@ import {useCallback,useState} from 'react'
 import {romCatalogClient} from '../../catalog/client'
 import {syncService} from '../../cloud/sync-service'
 import type {GameEntry,PlaySession,RomCatalogItem,SaveManifest} from '../../domain/models'
+import {errorMessage} from '../../platform/error'
 import {readBytes} from '../../platform/fs'
 import {loadSettings} from '../../settings'
 import {libraryRepository,playHistoryRepository,saveRepository} from '../../services'
@@ -55,4 +56,4 @@ const formatDate=(value:string)=>{const date=new Date(value);return`${date.getMo
 const initials=(title:string)=>title.replace(/[^A-Za-z0-9\u4e00-\u9fff]/g,'').slice(0,2).toUpperCase()||'GB'
 const reasonLabel=(reason:PlaySession['exitReason'])=>({paused:'暂停',background:'进入后台',exit:'正常退出',error:'异常中止'}[reason])
 const cloudLabel=(state:GameEntry['cloudState'])=>({disabled:'仅本地',pending:'待同步',synced:'已同步',conflict:'有冲突',error:'同步失败'}[state])
-const showError=(error:unknown)=>Taro.showModal({title:'游戏操作失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'游戏操作失败',content:errorMessage(error),showCancel:false})

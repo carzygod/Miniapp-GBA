@@ -4,6 +4,7 @@ import {useCallback,useEffect,useMemo,useState} from 'react'
 import {romCatalogClient} from '../../catalog/client'
 import {syncService} from '../../cloud/sync-service'
 import type {GameEntry,PlaySession,RomCatalogItem,SaveManifest} from '../../domain/models'
+import {errorMessage,isCancellationError} from '../../platform/error'
 import {readBytes} from '../../platform/fs'
 import {loadSettings} from '../../settings'
 import {libraryRepository,playHistoryRepository,saveRepository} from '../../services'
@@ -34,7 +35,7 @@ export default function LibraryPage(){
   const[downloadName,setDownloadName]=useState('')
 
   const refreshLocal=useCallback(async()=>{const[localGames,localSaves,sessions]=await Promise.all([libraryRepository.list(),saveRepository.list(),playHistoryRepository.list()]);setGames(localGames);setSaves(localSaves);setHistory(sessions)},[])
-  const refreshCatalog=useCallback(async(force=false)=>{setCatalogStatus('loading');setCatalogError('');try{const snapshot=await romCatalogClient.list({force});setCatalog(snapshot.catalog.items);setCatalogStatus(snapshot.stale?'stale':'ready')}catch(error){setCatalogStatus('error');setCatalogError(error instanceof Error?error.message:String(error))}},[])
+  const refreshCatalog=useCallback(async(force=false)=>{setCatalogStatus('loading');setCatalogError('');try{const snapshot=await romCatalogClient.list({force});setCatalog(snapshot.catalog.items);setCatalogStatus(snapshot.stale?'stale':'ready')}catch(error){setCatalogStatus('error');setCatalogError(errorMessage(error))}},[])
   useDidShow(()=>{refreshLocal().catch(showError);refreshCatalog().catch(()=>undefined)})
 
   const localByCatalogId=useMemo(()=>new Map(games.filter(game=>game.catalogId).map(game=>[game.catalogId!,game])),[games])
@@ -57,7 +58,7 @@ export default function LibraryPage(){
     setBusyCatalogId(item.id);setDownloadProgress(0)
     try{const entry=await libraryRepository.importCatalogItem(item,setDownloadProgress);await refreshLocal();Taro.showToast({title:'已加入游戏库',icon:'success'});await openGame(entry.romId)}catch(error){showError(error)}finally{setBusyCatalogId('');setDownloadProgress(0)}
   }
-  const importRom=async()=>{let selected;try{selected=await Taro.showActionSheet({itemList:['微信文件（.gba / .zip）','授权 HTTPS 下载']})}catch{return}if(selected.tapIndex===1){setDownloadOpen(true);return}setBusy(true);try{await libraryRepository.chooseAndImport();await refreshLocal();Taro.showToast({title:'已加入游戏库',icon:'success'})}catch(error){if(!String(error).includes('cancel')&&!String(error).includes('取消'))showError(error)}finally{setBusy(false)}}
+  const importRom=async()=>{let selected;try{selected=await Taro.showActionSheet({itemList:['微信文件（.gba / .zip）','授权 HTTPS 下载']})}catch{return}if(selected.tapIndex===1){setDownloadOpen(true);return}setBusy(true);try{await libraryRepository.chooseAndImport();await refreshLocal();Taro.showToast({title:'已加入游戏库',icon:'success'})}catch(error){if(!isCancellationError(error))showError(error)}finally{setBusy(false)}}
   const submitDownload=async()=>{setBusy(true);try{await libraryRepository.importAuthorizedDownload(downloadUrl,Number(downloadSize),downloadName);setDownloadOpen(false);setDownloadUrl('');setDownloadSize('');setDownloadName('');await refreshLocal();Taro.showToast({title:'授权 ROM 已导入',icon:'success'})}catch(error){showError(error)}finally{setBusy(false)}}
   const repair=async()=>{const confirm=await Taro.showModal({title:'重新扫描游戏库',content:'验证 ROM 并恢复未入库文件；异常文件会移入隔离区，存档不会删除。',confirmText:'开始扫描'});if(!confirm.confirm)return;setBusy(true);try{const result=await libraryRepository.repairLibrary();await refreshLocal();await Taro.showModal({title:'扫描完成',content:`新增 ${result.added}，移除 ${result.removed}，隔离 ${result.quarantined}。`,showCancel:false})}finally{setBusy(false)}}
   const manage=async(game:GameEntry)=>{let selection;try{selection=await Taro.showActionSheet({itemList:['查看游戏详情','修改显示名称','导入 .sav','查看存档','重新扫描','删除 ROM']})}catch{return}if(selection.tapIndex===0)await openGame(game.romId);if(selection.tapIndex===1){setEditing(game);setEditTitle(game.title)}if(selection.tapIndex===2)await importBattery(game);if(selection.tapIndex===3)await Taro.switchTab({url:'/pages/saves/index'});if(selection.tapIndex===4)await repair();if(selection.tapIndex===5)await remove(game);await refreshLocal()}
@@ -90,4 +91,4 @@ const relativeTime=(value:string)=>{const seconds=Math.max(0,Math.round((Date.no
 const dateDay=(value:string)=>{const date=new Date(value);return`${date.getMonth()+1}/${date.getDate()}`}
 const dateTime=(value:string)=>{const date=new Date(value);return`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`}
 const exitReasonLabel=(reason:PlaySession['exitReason'])=>({paused:'暂停',background:'进入后台',exit:'正常退出',error:'异常中止'}[reason])
-const showError=(error:unknown)=>Taro.showModal({title:'操作失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'操作失败',content:errorMessage(error),showCancel:false})

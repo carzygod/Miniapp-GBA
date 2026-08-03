@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro'
 import coreManifest from './assets/minigba-core.manifest.json'
+import {errorMessage} from './platform/error'
 
 export interface RuntimeDiagnostics {
   averageFps: number
@@ -31,7 +32,7 @@ export function recordRuntimeDiagnostics(value:Omit<RuntimeDiagnostics,'updatedA
 
 export function recordDiagnosticError(code:string,error:unknown):void{
   const current=Taro.getStorageSync<DiagnosticError[]>(errorsKey)||[]
-  current.unshift({code:sanitizeText(code).slice(0,48),message:sanitizeText(error instanceof Error?error.message:String(error)).slice(0,240),occurredAt:new Date().toISOString()})
+  current.unshift({code:sanitizeText(code).slice(0,48),message:sanitizeText(errorMessage(error)).slice(0,240),occurredAt:new Date().toISOString()})
   Taro.setStorageSync(errorsKey,current.slice(0,10))
 }
 

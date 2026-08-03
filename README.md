@@ -60,6 +60,8 @@ Do not import the repository root or `src`. The project pins the locally complet
 
 When `TARO_APP_API_BASE_URL` is empty, cloud login and synchronization are intentionally disabled and no relative `/v1/*` request is emitted. This is the expected local build mode until the HTTPS API is deployed. If Developer Tools still shows an old request after rebuilding, clear the console and use **Compile > Clear cache and compile** against the same `dist` directory.
 
+Fresh installations do not have game, save, or history directories yet. The filesystem adapter treats WeChat `ENOENT` failures as empty data and normalizes object-shaped API failures through `errMsg`, so a real failure is readable instead of appearing as `[object Object]`.
+
 Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
 
 The checked-in development WASM asset is provenance-pinned in `src/assets/minigba-core.manifest.json`. A release candidate must replace it with the output of `minigba-core/scripts/build-weapp.sh` built on the same Ubuntu host, then verify the hash before running `scripts/build-release.sh`.

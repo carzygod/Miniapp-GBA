@@ -1,4 +1,5 @@
 import Taro from '@tarojs/taro'
+import {asError,isAlreadyExistsError,isMissingFileError} from './error'
 
 const manager = () => Taro.getFileSystemManager()
 
@@ -6,7 +7,7 @@ export const dataRoot = `${Taro.env.USER_DATA_PATH}/minigba`
 
 export async function ensureDirectory(path: string): Promise<void> {
   try { await call<void>('mkdir', { dirPath: path, recursive: true }) }
-  catch (error) { if (!String(error).includes('exist')) throw error }
+  catch (error) { if (!isAlreadyExistsError(error)) throw error }
 }
 
 export async function readBytes(path: string): Promise<Uint8Array> {
@@ -51,7 +52,7 @@ export async function exists(path: string): Promise<boolean> {
 
 export async function listDirectory(path: string): Promise<string[]> {
   try { const result = await call<{ files: string[] }>('readdir', { dirPath: path }); return result.files }
-  catch (error) { if (String(error).includes('no such')) return []; throw error }
+  catch (error) { if (isMissingFileError(error)) return []; throw error }
 }
 
 export interface FileEntry { path: string; size: number; modifiedAt: number }
@@ -78,12 +79,12 @@ export async function moveFile(source: string, target: string): Promise<void> {
 
 export async function removeDirectoryIfExists(path: string): Promise<void> {
   try { await call<void>('rmdir', { dirPath: path, recursive: true }) }
-  catch (error) { if (!String(error).includes('no such')) throw error }
+  catch (error) { if (!isMissingFileError(error)) throw error }
 }
 
 export async function unlinkIfExists(path: string): Promise<void> {
   try { await call<void>('unlink', { filePath: path }) }
-  catch (error) { if (!String(error).includes('no such')) throw error }
+  catch (error) { if (!isMissingFileError(error)) throw error }
 }
 
 async function replace(source: string, target: string): Promise<void> {
@@ -106,7 +107,7 @@ function call<T>(method: string, options: Record<string, unknown>): Promise<T> {
     const fs = manager() as unknown as Record<string, (input: Record<string, unknown>) => void>
     const operation=fs[method]
     if(!operation){reject(new Error(`FileSystemManager.${method} is unavailable`));return}
-    operation({ ...options, success: resolve, fail: reject })
+    operation.call(fs,{ ...options, success: resolve, fail: (error:unknown)=>reject(asError(error,`FileSystemManager.${method} 失败`)) })
   })
 }
 

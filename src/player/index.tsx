@@ -9,6 +9,7 @@ import {syncService} from '../cloud/sync-service'
 import {clockMovedBackwards,recordDiagnosticError,recordRuntimeDiagnostics} from '../diagnostics'
 import {loadSettings} from '../settings'
 import {libraryRepository,playHistoryRepository,saveRepository} from '../services'
+import {errorMessage} from '../platform/error'
 import {dataRoot,readBytes,writeBytesAtomic} from '../platform/fs'
 import type {GameEntry,PlaySessionExitReason,SaveKind} from '../domain/models'
 import {PlaySessionTracker} from '../storage/play-session-tracker'
@@ -129,7 +130,7 @@ export default function PlayerPage(){
       }catch(error){
         runningRef.current=false;clearInput();audioRef.current.pause().catch(()=>undefined)
         recordDiagnosticError('CORE_RUNTIME',error)
-        setMessage(`CORE_RUNTIME: ${error instanceof Error?error.message:String(error)}`);setPhase('error')
+        setMessage(`CORE_RUNTIME: ${errorMessage(error)}`);setPhase('error')
         flushBattery().catch(()=>undefined);checkpointPlay('error').catch(()=>undefined)
       }
       animationRef.current=canvas.requestAnimationFrame(tick)
@@ -159,7 +160,7 @@ export default function PlayerPage(){
         if(choice===2)core.reset()
       }
       setMessage('已就绪');setPhase('ready');lastAutoStateAt.current=Date.now();startLoop()
-    }catch(error){setMessage(error instanceof Error?error.message:String(error));setPhase('error')}})()
+    }catch(error){setMessage(errorMessage(error));setPhase('error')}})()
     return()=>{cancelled=true}
   },[romId,settings.autoState,startLoop])
 
@@ -223,4 +224,4 @@ async function chooseStartupMode():Promise<number>{
 }
 function selectCanvas():Promise<WechatCanvasNode>{return new Promise((resolve,reject)=>{Taro.createSelectorQuery().select('#game-canvas').fields({node:true,size:true}).exec(result=>{const node=(result[0] as unknown as {node?:WechatCanvasNode})?.node;node?resolve(node):reject(new Error('无法初始化游戏画布'))})})}
 const messageFor=(phase:Phase,message:string)=>phase==='loading'?message:phase==='paused'?'已暂停':phase==='error'?message:'按下开始'
-const showError=(error:unknown)=>Taro.showModal({title:'播放器错误',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'播放器错误',content:errorMessage(error),showCancel:false})

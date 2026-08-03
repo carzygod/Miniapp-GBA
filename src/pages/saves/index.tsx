@@ -6,6 +6,7 @@ import {cloudClient} from '../../cloud/client'
 import {cloudDeleteService} from '../../cloud/delete-service'
 import {syncService} from '../../cloud/sync-service'
 import {loadSettings} from '../../settings'
+import {errorMessage} from '../../platform/error'
 import {libraryRepository,saveRepository,syncQueue} from '../../services'
 import {dataRoot,ensureDirectory,exists,readBytes,writeBytesAtomic} from '../../platform/fs'
 import './index.scss'
@@ -36,4 +37,4 @@ const label=(kind:SaveManifest['kind'],slot:string)=>kind==='battery'?'电池存
 const formatBytes=(bytes:number)=>bytes>=1048576?`${(bytes/1048576).toFixed(1)} MiB`:`${Math.max(1,Math.ceil(bytes/1024))} KiB`
 const formatDate=(value:string)=>{const date=new Date(value);return`${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`}
 const safeName=(value:string)=>value.replace(/[\\/:*?"<>|]/g,'_').slice(0,40)||'minigba-save'
-const showError=(error:unknown)=>Taro.showModal({title:'存档操作失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'存档操作失败',content:errorMessage(error),showCancel:false})
