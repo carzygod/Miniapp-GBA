@@ -1,6 +1,6 @@
 # Miniapp GBA
 
-Miniapp GBA 是一个面向微信小程序的 GBA 模拟器系统。项目由 Taro/React 小程序、基于 mGBA 的单线程 WXWebAssembly 核心，以及提供微信登录和版本化云存档的 Go API 组成。
+Miniapp GBA 是一个以微信小程序为正式发布目标、并提供抖音小程序技术预览构建的 GBA 模拟器系统。项目由 Taro/React 小程序、基于 mGBA 的单线程 WebAssembly 核心，以及提供微信登录和版本化云存档的 Go API 组成。
 
 项目不会把用户私有 ROM 上传到云端。首页 ROM 广场读取 Cloudflare R2 的只读 schema v2 catalog；目录显示运营方提供的权利元数据，缺失时明确标注而不从文件名推断。对外发行前仍需由运营方完成内容权利和微信平台审核。
 
@@ -12,6 +12,7 @@ Miniapp GBA 是一个面向微信小程序的 GBA 模拟器系统。项目由 Ta
 - App 的 TypeScript、ESLint、71 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
 - 微信开发者工具 2.01.2510290 当前将基础库 `3.16.1` 标记为灰度版本；工程已回退并固定本机完整缓存的 `3.15.2`，构建会阻止不兼容 WXSS 和错误的基础库版本进入 `dist/`。
 - 微信小程序 AppID 已固定为 `wx4a8213e3dfa88565` 并进入构建门禁；AppSecret 只允许写入 Ubuntu 服务端 root 管理的凭证文件。Ubuntu 22.04 裸机、HTTPS 合法域名、上传私钥及 iOS/Android 真机矩阵仍是正式发布前置条件。
+- `douyin` 分支可生成独立的 `dist-douyin/`：使用 Taro `tt` 平台、`TTWebAssembly`、TTML/TTSS 和抖音项目配置；抖音身份云登录与任意本地文件选择尚无对应平台能力，因此该构建使用 ROM 广场或授权 HTTPS 下载及本地存档。
 
 详细证据见 [当前验证报告](./docs/10-validation-report.md) 和 [需求追踪矩阵](./docs/11-requirement-traceability.md)。
 
@@ -65,6 +66,26 @@ minigba-app/dist
 ```bash
 npm run dev:weapp
 ```
+
+## 构建抖音小程序
+
+在 `douyin` 分支执行：
+
+```bash
+cd minigba-app
+npm ci
+npm run typecheck
+npm test
+npm run build:douyin
+```
+
+抖音开发者工具应直接导入：
+
+```text
+minigba-app/dist-douyin
+```
+
+产物内含 `app.json`、TTML/TTSS、`project.config.json` 和 `player/assets/minigba-core.wasm`。默认 `appid` 为 `testAppId`，连接正式抖音应用时通过 `TARO_APP_ID=<抖音AppID>` 重新构建。当前微信云 API 只实现 `/v1/auth/wechat/login`，抖音构建不会显示微信登录；接入抖音云存档前必须新增抖音服务端身份交换，不能复用微信登录 code。
 
 正式构建还需要注入 HTTPS API origin、R2 manifest 和授权 ROM 下载 host：
 
@@ -134,7 +155,7 @@ go vet ./...
 
 ## 关键边界
 
-- 仅支持微信小程序，不提供 H5、WebView 模拟器或其他小程序平台构建。
+- 正式发布链路目前仅支持微信小程序；`douyin` 分支提供原生抖音小程序技术预览构建，不提供 H5 或 WebView 模拟器。
 - 只允许 Ubuntu 22.04 裸机进行发行构建和服务端部署。
 - 禁止 Docker、Podman、LXC、WSL、虚拟机及其他虚拟化环境。
 - 云端默认仅保存电池存档和即时状态存档，不保存 ROM。

@@ -1,11 +1,13 @@
 {
-  "name": "minigba-weapp",
+  "name": "minigba-miniapp",
   "version": "0.1.0",
   "private": true,
-  "description": "MiniGBA WeChat Mini Program client",
+  "description": "MiniGBA WeChat and Douyin Mini Program client",
   "scripts": {
     "build:weapp": "node scripts/validate-rom-catalog.mjs catalog.r2.json && taro build --type weapp && node scripts/validate-weapp-output.mjs",
+    "build:douyin": "node scripts/validate-rom-catalog.mjs catalog.r2.json && taro build --type tt && node scripts/validate-douyin-output.mjs",
     "dev:weapp": "taro build --type weapp --watch",
+    "dev:douyin": "taro build --type tt --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage.enabled",
     "test:watch": "vitest",
@@ -19,6 +21,7 @@
     "@tarojs/components": "4.2.1",
     "@tarojs/helper": "4.2.1",
     "@tarojs/plugin-framework-react": "4.2.1",
+    "@tarojs/plugin-platform-tt": "4.2.1",
     "@tarojs/plugin-platform-weapp": "4.2.1",
     "@tarojs/react": "4.2.1",
     "@tarojs/runtime": "4.2.1",

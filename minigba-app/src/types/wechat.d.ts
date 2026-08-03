@@ -2,10 +2,15 @@ declare const WXWebAssembly: {
   instantiate(path: string, imports: WebAssembly.Imports): Promise<WebAssembly.WebAssemblyInstantiatedSource>
 }
 
+declare const TTWebAssembly: {
+  instantiate(path: string, imports: WebAssembly.Imports): Promise<WebAssembly.WebAssemblyInstantiatedSource>
+}
+
 declare const __MINIGBA_API_BASE_URL__: string
 declare const __MINIGBA_ROM_CATALOG_URL__: string
 declare const __MINIGBA_ROM_CATALOG_REMOTE_ENABLED__: string
 declare const __MINIGBA_ROM_DOWNLOAD_HOSTS__: string
+declare const __MINIGBA_PLATFORM__: 'weapp' | 'tt'
 
 interface WechatCanvasNode {
   width: number

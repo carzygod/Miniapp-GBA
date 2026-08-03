@@ -91,7 +91,8 @@ export class MgbaWxCore{
         proc_exit:(code:number)=>{throw new Error(`WASM exited with ${code}`)},
       },
     }
-    const result=await WXWebAssembly.instantiate(path,imports)
+    const wasmRuntime=__MINIGBA_PLATFORM__==='tt'?TTWebAssembly:WXWebAssembly
+    const result=await wasmRuntime.instantiate(path,imports)
     coreExports=result.instance.exports as CoreExports
     if(!coreExports.memory||!(coreExports.memory.buffer instanceof ArrayBuffer))throw new Error('核心没有导出 memory')
     return new MgbaWxCore(coreExports)

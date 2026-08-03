@@ -1,12 +1,13 @@
 # MiniGBA App
 
-MiniGBA App is the standalone Taro/React/TypeScript client for the WeChat mini program. It provides a Cloudflare R2-backed ROM catalog, local library, per-session play history, game details, emulator player, virtual controls, local saves, save states, cloud synchronization, storage management, and privacy controls.
+MiniGBA App is the standalone Taro/React/TypeScript client for WeChat and Douyin mini programs. It provides a Cloudflare R2-backed ROM catalog, local library, per-session play history, game details, emulator player, virtual controls, local saves, save states, storage management, and platform-specific cloud synchronization.
 
 ## Target
 
-- Build target: `weapp` only.
+- Build targets: `weapp` and `tt`.
 - Release build host: Ubuntu 22.04 bare metal.
 - Runtime: iOS and Android WeChat mini program.
+- Douyin branch runtime: Douyin mini program with `TTWebAssembly`; WeChat identity cloud sync and arbitrary local file transfer are disabled until Douyin-specific platform services are configured.
 - No H5 production fallback, WebView emulator wrapper, container, or virtual machine workflow.
 
 ## Product boundaries
@@ -55,6 +56,18 @@ npm run build:weapp
 ```text
 minigba-app/dist
 ```
+
+Build the Douyin target and import its generated project root into Douyin Developer Tools:
+
+```bash
+npm run build:douyin
+```
+
+```text
+minigba-app/dist-douyin
+```
+
+The generated project uses `testAppId` for local import. Replace it with a real Douyin Mini Program AppID through `TARO_APP_ID` when building an authenticated project. Do not import `project.tt.json` directly; the generated `dist-douyin/project.config.json` has `miniprogramRoot` normalized to `./`.
 
 Do not import the repository root or `src`. The project pins the locally complete WeChat base library `3.15.2`; the production validator rejects a different generated `libVersion` and unsupported WXSS universal selectors. This avoids the gray `3.16.1` selection and the incomplete `3.17.0` vendor cache observed with WeChat Developer Tools 2.01.2510290.
 

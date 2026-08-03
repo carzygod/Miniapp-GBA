@@ -3,6 +3,7 @@ import { unzipSync } from 'fflate'
 import { LIBRARY_SCHEMA_VERSION, type GameEntry, type LibraryIndex, type RomCatalogItem } from '../domain/models'
 import { sha256Hex } from '../domain/sha256'
 import { dataRoot, ensureDirectory, exists, fileSize, listFilesRecursive, moveFile, readBytes, readText, unlinkIfExists, writeBytesAtomic, writeTextAtomic } from '../platform/fs'
+import {chooseLocalFile} from '../platform/local-files'
 
 const romRoot = `${dataRoot}/roms`
 const indexPath = `${dataRoot}/library.json`
@@ -31,8 +32,7 @@ export class LibraryRepository {
 
   async chooseAndImport(): Promise<GameEntry> {
     await ensureCopyrightConsent()
-    const result = await Taro.chooseMessageFile({ count: 1, type: 'file', extension: ['gba','zip'] })
-    const selected = result.tempFiles[0]
+    const selected = await chooseLocalFile(['gba','zip'])
     if (!selected) throw new Error('没有选择文件')
     const isZip=selected.name.toLowerCase().endsWith('.zip')
     if(selected.size>(isZip?MAX_ZIP_BYTES:MAX_ROM_BYTES))throw new Error(isZip?'ZIP 超过 32 MiB 限制':'ROM 超过 32 MiB 限制')

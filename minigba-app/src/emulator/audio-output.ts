@@ -1,6 +1,9 @@
+import {currentPlatform} from '../platform/capabilities'
+
 type AudioProcessEvent={outputBuffer:{getChannelData(index:number):Float32Array}}
 type ScriptNode={onaudioprocess?:(event:AudioProcessEvent)=>void;connect(target:unknown):void;disconnect():void}
 type AudioContextLike={destination:unknown;state:string;createScriptProcessor(size:number,input:number,output:number):ScriptNode;resume():Promise<void>;suspend?:()=>Promise<void>;close():Promise<void>}
+type AudioHost={createWebAudioContext?:()=>unknown}
 export type AudioBufferMode='low_latency'|'stable'
 export interface AudioStats{underruns:number;overflows:number;queuedChunks:number}
 
@@ -16,11 +19,11 @@ export class AudioOutput{
   constructor(options:{volume?:number;mode?:AudioBufferMode}={}){
     this.volume=Math.min(1,Math.max(0,options.volume??1));this.mode=options.mode??'stable'
   }
-  get available():boolean{return Boolean((globalThis as unknown as {wx?:{createWebAudioContext?:()=>unknown}}).wx?.createWebAudioContext)}
+  get available():boolean{return Boolean(audioFactory())}
   get stats():AudioStats{return{underruns:this.underruns,overflows:this.overflows,queuedChunks:this.chunks.length}}
   async start():Promise<boolean>{
     if(this.context){await this.context.resume();return true}
-    const factory=(globalThis as unknown as {wx?:{createWebAudioContext?:()=>unknown}}).wx?.createWebAudioContext
+    const factory=audioFactory()
     if(!factory)return false
     this.context=factory() as AudioContextLike
     if(typeof this.context.createScriptProcessor!=='function'){await this.context.close();this.context=undefined;return false}
@@ -39,4 +42,9 @@ export class AudioOutput{
     const chunk=this.chunks[0];if(!chunk){starved=true;break}
     left[frame]=((chunk[this.chunkOffset]??0)/32768)*this.volume;right[frame]=((chunk[this.chunkOffset+1]??0)/32768)*this.volume;this.chunkOffset+=2
   }if(starved)this.underruns++}
+}
+
+function audioFactory():(()=>unknown)|undefined{
+  const globals=globalThis as unknown as {wx?:AudioHost;tt?:AudioHost}
+  return (currentPlatform()==='tt'?globals.tt:globals.wx)?.createWebAudioContext
 }

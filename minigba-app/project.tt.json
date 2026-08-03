@@ -1,0 +1,13 @@
+{
+  "miniprogramRoot": "dist-douyin/",
+  "projectname": "minigba-douyin",
+  "description": "MiniGBA local ROM player and cloud save client for Douyin",
+  "appid": "testAppId",
+  "setting": {
+    "es6": true,
+    "urlCheck": false,
+    "autoCompile": true,
+    "minified": true
+  },
+  "douyinProjectType": "native"
+}
