@@ -1,4 +1,5 @@
 import { defineConfig } from '@tarojs/cli'
+import {resolveRomDownloadHosts} from './rom-download-hosts'
 
 export default defineConfig({
   projectName: 'minigba',
@@ -7,7 +8,7 @@ export default defineConfig({
     __MINIGBA_API_BASE_URL__: JSON.stringify(process.env.TARO_APP_API_BASE_URL ?? ''),
     __MINIGBA_ROM_CATALOG_URL__: JSON.stringify(process.env.TARO_APP_ROM_CATALOG_URL ?? ''),
     __MINIGBA_ROM_CATALOG_REMOTE_ENABLED__: JSON.stringify(process.env.TARO_APP_ROM_CATALOG_REMOTE_ENABLED ?? 'false'),
-    __MINIGBA_ROM_DOWNLOAD_HOSTS__: JSON.stringify(process.env.TARO_APP_ROM_DOWNLOAD_HOSTS ?? ''),
+    __MINIGBA_ROM_DOWNLOAD_HOSTS__: JSON.stringify(resolveRomDownloadHosts(process.env.TARO_APP_ROM_DOWNLOAD_HOSTS)),
   },
   designWidth: 750,
   deviceRatio: { 750: 1 },

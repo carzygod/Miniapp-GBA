@@ -1,7 +1,7 @@
 import {readFile} from 'node:fs/promises'
 
 const source=process.argv[2]??'catalog.example.json'
-const allowed=new Set((process.env.TARO_APP_ROM_DOWNLOAD_HOSTS??'roms.example.com').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean))
+const allowed=new Set((process.env.TARO_APP_ROM_DOWNLOAD_HOSTS?.trim()||'rom.sid.mom').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean))
 const resolutionBase=/^https:\/\//i.test(source)?source:`https://${[...allowed][0]??'invalid.example'}/catalog/v2/roms.json`
 const text=/^https:\/\//i.test(source)?await fetchRemote(source):await readFile(source,'utf8')
 let value
