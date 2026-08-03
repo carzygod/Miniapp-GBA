@@ -64,6 +64,8 @@ Fresh installations do not have game, save, or history directories yet. The file
 
 Local builds default `TARO_APP_ROM_DOWNLOAD_HOSTS` to the audited bundled-catalog host `rom.sid.mom`. Every `build:weapp` validates all 981 bundled entries before compilation and then verifies that both compiled ROM host allowlists are present in `dist`; Ubuntu release builds still require an explicit environment value.
 
+To diagnose a Developer Tools import, run `node scripts/validate-weapp-output.mjs` from this directory. A valid local artifact reports AppID `wx4a8213e3dfa88565`, base library `3.15.2`, ROM host `rom.sid.mom`, two compiled ROM host sets, and eight WXSS files. The Developer Tools "do not verify legal domains" switch affects WeChat's platform check only; it does not and should not bypass the application's compiled ROM host allowlist.
+
 Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
 
 The checked-in development WASM asset is provenance-pinned in `src/assets/minigba-core.manifest.json`. A release candidate must replace it with the output of `minigba-core/scripts/build-weapp.sh` built on the same Ubuntu host, then verify the hash before running `scripts/build-release.sh`.
