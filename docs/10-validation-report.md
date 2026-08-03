@@ -17,10 +17,11 @@
 - TypeScript typecheck、ESLint、Vitest 和 Taro 4.2.1 weapp production build 通过。
 - 微信开发者工具 2.01.2510290 暴露的 WXSS 通配选择器兼容问题已修复；生产构建现在自动扫描全部生成 WXSS，并在发现不受支持的通配选择器时阻断。
 - 首次启动时微信文件 API 会以 `{errMsg, errno}` 对象报告尚不存在的存档目录；旧适配器将其转成 `[object Object]` 并误弹“操作失败”。文件系统适配器现统一规范化微信失败对象，明确识别 `ENOENT/EEXIST`，把缺失数据目录视为空集合，并让权限或 I/O 故障显示真实 `errMsg`。首页、游戏、存档、设置、存储、诊断、播放器及同步错误出口均使用同一解析器。
+- 普通 `npm run build:weapp` 过去未加载 `.env.example`，会把 `TARO_APP_ROM_DOWNLOAD_HOSTS` 编译为空集合，导致 981 条内置目录全部被客户端自身的安全白名单拒绝；开发者工具的“不校验合法域名”无法绕过应用代码。现已把唯一实际目录域名 `rom.sid.mom` 设为本地构建默认值，编译前校验 981 条目录，编译后验证目录解析与 ROM 下载两套 host Set 均已进入 `dist`。Ubuntu 发布脚本仍强制显式注入白名单。
 - 开发者工具的 `3.17.0` 基础库缓存曾出现下载不完整和 MD5 校验失败，导致模拟器在业务代码执行前返回 HTTP 500；当前工具又将 `3.16.1` 明确标记为灰度版本并出现内部 `WAServiceMainContext timeout`。工程现固定并构建校验本机完整缓存的 `libVersion: 3.15.2`，不依赖开发者工具自动选择版本。
 - 游客模式中的 `webapi_getwxaasyncsecinfo:fail` 和 `WAServiceMainContext timeout` 来自开发者工具安全服务限制，调用栈不包含 App 模块；必须登录开发者工具并使用有权限的真实 AppID 才能消除。Chromium 的 SharedArrayBuffer deprecation 是模拟器内核提示；当前 Core 不导入共享内存或 pthread，不属于本项目运行错误。
 - `project.config.json` 和生成的 `dist/project.config.json` 已固定并校验 AppID `wx4a8213e3dfa88565`；上传脚本会拒绝与项目配置不一致的 `MINIGBA_WECHAT_APP_ID`。AppSecret 未进入 App 源码、构建常量或产物。
-- 18 个测试文件、69 个测试通过；语句覆盖率 `63.79%`、分支 `58.43%`、函数 `66.15%`、行 `75.68%`。新增测试覆盖微信对象错误解析、取消识别、首次空目录、幂等清理、重复目录创建和可读权限错误；R2 schema v2、本地内容 ID、输入、ZIP、存档、云同步、诊断和游玩计时测试继续通过。
+- 19 个测试文件、71 个测试通过；语句覆盖率 `63.79%`、分支 `58.43%`、函数 `66.15%`、行 `75.68%`。新增测试覆盖微信对象错误解析、取消识别、首次空目录、幂等清理、重复目录创建、可读权限错误和 ROM host 构建默认值；R2 schema v2、本地内容 ID、输入、ZIP、存档、云同步、诊断和游玩计时测试继续通过。
 - 已实现 R2 ROM 广场、目录缓存/刷新、搜索分类、下载进度、游戏详情、真实运行区间计时、逐次游玩记录，以及原有授权下载、ROM 重扫/隔离、ZIP 安全限制、`.sav` 导入、状态预览、截图、快进、音频、控制、存储、诊断和云同步管理。
 - 内置 981 项目录后，主包及非播放器页面 `879298` 字节；播放器分包 `542094` 字节；运行产物总计 `1421392` 字节，仍低于微信主包 2 MiB 限制。SBOM、许可证表和审计 JSON 位于忽略的 `artifacts/reports/`，不会进入微信上传根目录。
 - 分包 WASM 摘要与 Core 候选一致。
@@ -50,7 +51,7 @@
 
 - 三个发布守卫都会拒绝非 Ubuntu 22.04、VM、Docker/LXC 容器和 WSL。
 - Core WASM、App 候选构建和 API release 构建都会拒绝脏 Git 工作树。
-- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `6a41407e05336fd4c6706789d8f06019d57e9806`、API `962e0bbbe26a82d1001ba62fb68e5bc468d1e859`，工作树均为空且 `git fsck` 通过。
+- 当前三个独立仓库 HEAD 分别为 Core `5045490add4e9691d1c005aeb84c9886d2489536`、App `790b2c32e66f3245ab44dd588f61d0eae4cd44a2`、API `962e0bbbe26a82d1001ba62fb68e5bc468d1e859`，工作树均为空且 `git fsck` 通过。
 - `11-requirement-traceability.md` 已逐项覆盖产品文档中的全部 101 个 FR/NFR 标识，并区分自动验证、待环境验收、外部前置与 P2 延期。
 
 ## 2. 仍需外部环境完成

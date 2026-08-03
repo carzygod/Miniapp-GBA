@@ -62,6 +62,8 @@ When `TARO_APP_API_BASE_URL` is empty, cloud login and synchronization are inten
 
 Fresh installations do not have game, save, or history directories yet. The filesystem adapter treats WeChat `ENOENT` failures as empty data and normalizes object-shaped API failures through `errMsg`, so a real failure is readable instead of appearing as `[object Object]`.
 
+Local builds default `TARO_APP_ROM_DOWNLOAD_HOSTS` to the audited bundled-catalog host `rom.sid.mom`. Every `build:weapp` validates all 981 bundled entries before compilation and then verifies that both compiled ROM host allowlists are present in `dist`; Ubuntu release builds still require an explicit environment value.
+
 Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
 
 The checked-in development WASM asset is provenance-pinned in `src/assets/minigba-core.manifest.json`. A release candidate must replace it with the output of `minigba-core/scripts/build-weapp.sh` built on the same Ubuntu host, then verify the hash before running `scripts/build-release.sh`.
