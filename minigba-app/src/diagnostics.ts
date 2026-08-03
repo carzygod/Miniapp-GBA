@@ -36,12 +36,12 @@ export function recordDiagnosticError(code:string,error:unknown):void{
 }
 
 export function buildDiagnosticPackage():DiagnosticPackage{
-  const system=Taro.getSystemInfoSync()
-  const device=system as typeof system&{memorySize?:number}
+  const device=Taro.getDeviceInfo()
+  const app=Taro.getAppBaseInfo()
   return{
     schemaVersion:1,generatedAt:new Date().toISOString(),appVersion:'0.1.0',coreBuildId:coreManifest.buildId,
-    baseLibraryVersion:system.SDKVersion||'unknown',
-    device:{platform:system.platform||'unknown',system:system.system||'unknown',model:system.model||'unknown',benchmarkLevel:system.benchmarkLevel,memorySize:device.memorySize},
+    baseLibraryVersion:app.SDKVersion||'unknown',
+    device:{platform:device.platform||'unknown',system:device.system||'unknown',model:device.model||'unknown',benchmarkLevel:device.benchmarkLevel},
     runtime:Taro.getStorageSync<RuntimeDiagnostics>(runtimeKey)||undefined,
     recentErrors:Taro.getStorageSync<DiagnosticError[]>(errorsKey)||[],
   }

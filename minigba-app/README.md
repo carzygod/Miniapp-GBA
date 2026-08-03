@@ -56,7 +56,9 @@ npm run build:weapp
 minigba-app/dist
 ```
 
-Do not import the repository root or `src`. The project pins WeChat base library `3.16.1`; the production validator rejects a different generated `libVersion` and unsupported WXSS universal selectors. This pin also avoids the incomplete `3.17.0` vendor cache observed with WeChat Developer Tools 2.01.2510290, which surfaced as a simulator HTTP 500 before application code loaded.
+Do not import the repository root or `src`. The project pins the locally complete WeChat base library `3.15.2`; the production validator rejects a different generated `libVersion` and unsupported WXSS universal selectors. This avoids the gray `3.16.1` selection and the incomplete `3.17.0` vendor cache observed with WeChat Developer Tools 2.01.2510290.
+
+When `TARO_APP_API_BASE_URL` is empty, cloud login and synchronization are intentionally disabled and no relative `/v1/*` request is emitted. This is the expected local build mode until the HTTPS API is deployed. If Developer Tools still shows an old request after rebuilding, clear the console and use **Compile > Clear cache and compile** against the same `dist` directory.
 
 Production uploads use `miniprogram-ci` from an Ubuntu 22.04 bare-metal build host.
 

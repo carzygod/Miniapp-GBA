@@ -38,7 +38,7 @@ describe('CloudClient session handling',()=>{
   it('clears a revoked session and returns to anonymous settings',async()=>{
     state.storage.set('minigba.accessToken','expired')
     state.request.mockResolvedValue({statusCode:401,data:{}})
-    await new CloudClient().refresh()
+    expect(await new CloudClient().refresh()).toBe(false)
     expect(state.storage.has('minigba.accessToken')).toBe(false)
     expect(state.setScope).toHaveBeenCalledWith()
   })
@@ -46,9 +46,24 @@ describe('CloudClient session handling',()=>{
   it('refreshes both the token and the account scope',async()=>{
     state.storage.set('minigba.accessToken','old-token')
     state.request.mockResolvedValue({statusCode:200,data:{accessToken:'new-token',userId:'223e4567-e89b-42d3-a456-426614174000'}})
-    await new CloudClient().refresh()
+    expect(await new CloudClient().refresh()).toBe(true)
     expect(state.storage.get('minigba.accessToken')).toBe('new-token')
     expect(state.setScope).toHaveBeenCalledWith('223e4567-e89b-42d3-a456-426614174000')
+  })
+
+  it('does not treat a stale token as a session without an HTTPS API',async()=>{
+    state.storage.set('minigba.accessToken','stale-token')
+    const client=new CloudClient('')
+    expect(client.isConfigured()).toBe(false)
+    expect(client.isLoggedIn()).toBe(false)
+    expect(await client.refresh()).toBe(false)
+    expect(state.request).not.toHaveBeenCalled()
+  })
+
+  it('rejects an unconfigured cloud action before issuing a request',async()=>{
+    await expect(new CloudClient('').login('Test Device')).rejects.toThrow('云服务 HTTPS 地址未配置')
+    expect(state.login).not.toHaveBeenCalled()
+    expect(state.request).not.toHaveBeenCalled()
   })
 })
 

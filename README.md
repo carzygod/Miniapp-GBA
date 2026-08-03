@@ -9,8 +9,8 @@ Miniapp GBA 是一个面向微信小程序的 GBA 模拟器系统。项目由 Ta
 - 微信小程序已实现 R2 ROM 广场、我的游戏、逐次游玩记录、游戏详情、ROM 导入与隔离、完整虚拟按键、Canvas 播放器、本地电池存档、即时状态存档、截图、快进、音频和诊断页面。
 - 云端已实现微信身份交换、会话刷新、版本历史、乐观并发、冲突副本、删除与账户清除流程。
 - Cloudflare R2 的 `gba/` 已实际核对：981 个 `.gba`、合计 `7,725,253,970` 字节；本地 `catalog.r2.json` 已生成并通过 schema v2 校验。
-- App 的 TypeScript、ESLint、58 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
-- 微信开发者工具 2.01.2510290 已验证使用基础库 `3.16.1` 正常加载；构建会阻止不兼容 WXSS 和错误的基础库版本进入 `dist/`。
+- App 的 TypeScript、ESLint、62 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
+- 微信开发者工具 2.01.2510290 当前将基础库 `3.16.1` 标记为灰度版本；工程已回退并固定本机完整缓存的 `3.15.2`，构建会阻止不兼容 WXSS 和错误的基础库版本进入 `dist/`。
 - 微信小程序 AppID 已固定为 `wx4a8213e3dfa88565` 并进入构建门禁；AppSecret 只允许写入 Ubuntu 服务端 root 管理的凭证文件。Ubuntu 22.04 裸机、HTTPS 合法域名、上传私钥及 iOS/Android 真机矩阵仍是正式发布前置条件。
 
 详细证据见 [当前验证报告](./docs/10-validation-report.md) 和 [需求追踪矩阵](./docs/11-requirement-traceability.md)。
@@ -58,7 +58,7 @@ npm run build:weapp
 minigba-app/dist
 ```
 
-不要导入仓库根目录或 `minigba-app/src`。`project.config.json` 固定基础库 `3.16.1`；若开发者工具控制台仍保留旧的 500 或 WXSS 记录，应先清空控制台并重新编译当前 `dist/`。
+不要导入仓库根目录或 `minigba-app/src`。`project.config.json` 固定基础库 `3.15.2`；若开发者工具控制台仍保留旧的 500、WXSS 或 `Failed to fetch` 记录，应清空控制台，并对当前 `dist/` 执行“清缓存并编译”。API 地址为空的本地构建会关闭云登录和同步，不会生成相对 `/v1/*` 请求。
 
 开发模式使用：
 

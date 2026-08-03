@@ -3,7 +3,7 @@
   "projectname": "minigba",
   "description": "MiniGBA local ROM player and cloud save client",
   "appid": "wx4a8213e3dfa88565",
-  "libVersion": "3.16.1",
+  "libVersion": "3.15.2",
   "setting": {
     "es6": true,
     "enhance": true,
