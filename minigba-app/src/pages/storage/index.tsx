@@ -1,6 +1,7 @@
 import Taro,{useDidShow} from '@tarojs/taro'
 import {Button,Text,View} from '@tarojs/components'
 import {useCallback,useState} from 'react'
+import {errorMessage} from '../../platform/error'
 import {calculateStorageUsage,clearQuarantine,clearScreenshots,clearTemporaryFiles,type StorageUsage} from '../../storage/storage-maintenance'
 import './index.scss'
 
@@ -18,4 +19,4 @@ export default function StoragePage(){
 }
 
 const formatBytes=(bytes:number)=>bytes>=1048576?`${(bytes/1048576).toFixed(2)} MiB`:bytes>=1024?`${(bytes/1024).toFixed(1)} KiB`:`${bytes} B`
-const showError=(error:unknown)=>Taro.showModal({title:'存储操作失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'存储操作失败',content:errorMessage(error),showCancel:false})

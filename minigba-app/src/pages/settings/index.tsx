@@ -2,6 +2,7 @@ import Taro from '@tarojs/taro'
 import {Button,Slider,Switch,Text,View} from '@tarojs/components'
 import {useState} from 'react'
 import {cloudClient} from '../../cloud/client'
+import {errorMessage} from '../../platform/error'
 import {defaultSettings,loadSettings,resetSettings,saveSettings,type AppSettings} from '../../settings'
 import './index.scss'
 
@@ -30,4 +31,4 @@ function SettingSwitch({title,detail,value,onChange,disabled=false}:{title:strin
 function SettingSlider({title,value,minimum,maximum,suffix,onChange}:{title:string;value:number;minimum:number;maximum:number;suffix:string;onChange:(value:number)=>void}){return <View className='slider-line'><View className='slider-heading'><Text className='setting-title'>{title}</Text><Text className='mono'>{value}{suffix}</Text></View><Slider min={minimum} max={maximum} step={5} value={value} activeColor='#1bb4a5' backgroundColor='#36413f' blockColor='#edf3f0' blockSize={18} onChange={event=>onChange(event.detail.value)}/></View>}
 function SegmentedRow<T extends string>({title,value,options,onChange}:{title:string;value:T;options:Array<[T,string]>;onChange:(value:T)=>void}){return <View className='segmented-line'><Text className='setting-title'>{title}</Text><View className='segments'>{options.map(([id,label])=><Button key={id} className={value===id?'selected':''} onClick={()=>onChange(id)}>{label}</Button>)}</View></View>}
 function CommandRow({title,detail,command,onClick,danger=false}:{title:string;detail:string;command:string;onClick:()=>void;danger?:boolean}){return <View className='account-line'><View><Text className='setting-title'>{title}</Text><Text className='setting-detail'>{detail}</Text></View><Button className={`account-button ${danger?'danger':''}`} onClick={onClick}>{command}</Button></View>}
-const showError=(error:unknown)=>Taro.showModal({title:'设置操作失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'设置操作失败',content:errorMessage(error),showCancel:false})

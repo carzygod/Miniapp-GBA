@@ -2,6 +2,7 @@ import Taro,{useDidShow} from '@tarojs/taro'
 import {Button,Text,View} from '@tarojs/components'
 import {useCallback,useState} from 'react'
 import {buildDiagnosticPackage,type DiagnosticPackage} from '../../diagnostics'
+import {errorMessage} from '../../platform/error'
 import {dataRoot,writeTextAtomic} from '../../platform/fs'
 import './index.scss'
 
@@ -14,4 +15,4 @@ export default function DiagnosticsPage(){
   return <View className='page-shell diagnostics-page'><Text className='eyebrow'>RUNTIME</Text><View className='page-title'>诊断</View><Text className='page-subtitle'>最近一次运行状态</Text><View className='diagnostic-list'>{rows.map(([label,detail])=><View className='diagnostic-row' key={label}><Text>{label}</Text><Text className='mono'>{detail}</Text></View>)}</View><View className='section-title'>最近错误</View>{value.recentErrors.length?<View className='error-list'>{value.recentErrors.map(item=><View className='error-row' key={`${item.occurredAt}-${item.code}`}><Text className='error-code mono'>{item.code}</Text><Text className='error-message'>{item.message}</Text><Text className='error-time'>{formatDate(item.occurredAt)}</Text></View>)}</View>:<View className='empty-errors'>没有记录到运行错误</View>}<Button className='secondary-button export-diagnostic' onClick={()=>exportPackage().catch(showError)}>导出脱敏诊断包</Button></View>
 }
 const formatDate=(value:string)=>new Date(value).toLocaleString()
-const showError=(error:unknown)=>Taro.showModal({title:'诊断导出失败',content:error instanceof Error?error.message:String(error),showCancel:false})
+const showError=(error:unknown)=>Taro.showModal({title:'诊断导出失败',content:errorMessage(error),showCancel:false})
