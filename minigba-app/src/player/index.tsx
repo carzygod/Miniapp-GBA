@@ -10,6 +10,7 @@ import {clockMovedBackwards,recordDiagnosticError,recordRuntimeDiagnostics} from
 import {loadSettings} from '../settings'
 import {libraryRepository,playHistoryRepository,saveRepository} from '../services'
 import {errorMessage} from '../platform/error'
+import {listenForAudioInterruption} from '../platform/app-events'
 import {dataRoot,readBytes,writeBytesAtomic} from '../platform/fs'
 import type {GameEntry,PlaySessionExitReason,SaveKind} from '../domain/models'
 import {PlaySessionTracker} from '../storage/play-session-tracker'
@@ -209,7 +210,7 @@ export default function PlayerPage(){
 
   useDidHide(()=>{persistForBackground().catch(()=>undefined)})
   useUnload(()=>{shutdown().catch(()=>undefined)})
-  useEffect(()=>{const interrupted=()=>{persistForBackground().catch(()=>undefined)};Taro.onAudioInterruptionBegin(interrupted);return()=>Taro.offAudioInterruptionBegin(interrupted)},[persistForBackground])
+  useEffect(()=>listenForAudioInterruption(()=>{persistForBackground().catch(()=>undefined)}),[persistForBackground])
 
   return <View className='player-page'>
     <View className='player-status'><View><Text className='player-title'>{game?.title??'MiniGBA'}</Text><Text className='player-code mono'>{game?.gameCode??message}</Text></View><View className={`run-light ${phase}`}/></View>
