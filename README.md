@@ -12,7 +12,7 @@ Miniapp GBA 是一个以微信小程序为正式发布目标、并提供抖音�
 - App 的 TypeScript、ESLint、71 个 Vitest 测试、R2 manifest 校验及 Taro production build 已通过。
 - 微信开发者工具 2.01.2510290 当前将基础库 `3.16.1` 标记为灰度版本；工程已回退并固定本机完整缓存的 `3.15.2`，构建会阻止不兼容 WXSS 和错误的基础库版本进入 `dist/`。
 - 微信小程序 AppID 已固定为 `wx4a8213e3dfa88565` 并进入构建门禁；AppSecret 只允许写入 Ubuntu 服务端 root 管理的凭证文件。Ubuntu 22.04 裸机、HTTPS 合法域名、上传私钥及 iOS/Android 真机矩阵仍是正式发布前置条件。
-- `douyin` 分支可生成独立的 `dist-douyin/`：使用 Taro `tt` 平台、`TTWebAssembly`、TTML/TTSS 和抖音项目配置；抖音身份云登录与任意本地文件选择尚无对应平台能力，因此该构建使用 ROM 广场或授权 HTTPS 下载及本地存档。
+- `douyin` 分支可生成独立的 `dist-douyin/`：使用 Taro `tt` 平台、`TTWebAssembly`、TTML/TTSS 和抖音项目配置；ROM 使用下载临时目录规避小程序 10 MiB 用户目录上限，临时文件被系统清理后会在播放前自动重取，索引与存档仍保存在用户目录。抖音身份云登录与任意本地文件选择尚无对应平台能力。
 
 详细证据见 [当前验证报告](./docs/10-validation-report.md) 和 [需求追踪矩阵](./docs/11-requirement-traceability.md)。
 
@@ -86,6 +86,8 @@ minigba-app/dist-douyin
 ```
 
 产物内含 `app.json`、TTML/TTSS、`project.config.json` 和 `player/assets/minigba-core.wasm`。默认 `appid` 为 `testAppId`，连接正式抖音应用时通过 `TARO_APP_ID=<抖音AppID>` 重新构建。当前微信云 API 只实现 `/v1/auth/wechat/login`，抖音构建不会显示微信登录；接入抖音云存档前必须新增抖音服务端身份交换，不能复用微信登录 code。
+
+抖音小程序用户目录只有 10 MiB，不能持久保存常见的 16/32 MiB GBA ROM。抖音构建因此直接使用 `tt.downloadFile` 的临时文件并只持久保存游戏索引和存档；若宿主清除了临时 ROM，播放器会从原白名单 HTTPS 地址自动重新下载，并再次检查 HTTP 状态、精确长度和 GBA 文件头。该流程不要求 catalog 提供 SHA-256。
 
 正式构建还需要注入 HTTPS API origin、R2 manifest 和授权 ROM 下载 host：
 

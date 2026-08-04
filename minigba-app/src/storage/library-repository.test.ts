@@ -5,6 +5,7 @@ const state=vi.hoisted(()=>({
   storage:new Map<string,unknown>(),
   files:[] as Array<{path:string;size:number;modifiedAt:number}>,
   moves:[] as Array<{source:string;target:string}>,
+  platform:'weapp' as 'weapp'|'tt',
   downloadFile:vi.fn(),
   showModal:vi.fn(async()=>({confirm:true,cancel:false})),
 }))
@@ -17,6 +18,7 @@ vi.mock('@tarojs/taro',()=>({default:{
   downloadFile:state.downloadFile,
   showModal:state.showModal,
 }}))
+vi.mock('../platform/capabilities',()=>({currentPlatform:()=>state.platform}))
 vi.mock('../platform/fs',()=>({
   dataRoot:'/data',
   ensureDirectory:async()=>undefined,
@@ -41,6 +43,7 @@ const fixture=()=>{const rom=new Uint8Array(256*1024);for(let index=0;index<rom.
 
 beforeEach(()=>{
   state.memory.clear();state.storage.clear();state.files=[];state.moves=[]
+  state.platform='weapp'
   state.storage.set('minigba.romCopyrightConsent.v1',{version:1})
   state.downloadFile.mockReset();state.showModal.mockClear()
 })
@@ -81,6 +84,21 @@ describe('authorized HTTPS import',()=>{
     expect(entry).toMatchObject({romId,title:'Catalog Title',gameCode:'CAT1',source:'r2-catalog',catalogId:'catalog-title-v1',catalogObjectKey:'gba/catalog.gba',catalogEtag:'not-a-sha256',description:'Authorized catalog entry',genres:['Homebrew'],licenseName:'CC BY 4.0'})
     await expect(repository.getByCatalogId('catalog-title-v1')).resolves.toMatchObject({romId,catalogObjectKey:'gba/catalog.gba'})
   })
+
+  it('keeps Douyin catalog ROMs in temporary storage and downloads them again after eviction',async()=>{
+    state.platform='tt'
+    const rom=fixture(),romId=sha256Hex(rom),first='/tmp/catalog-first.gba',second='/tmp/catalog-second.gba'
+    state.memory.set(first,rom);state.downloadFile.mockResolvedValue({statusCode:200,tempFilePath:first,dataLength:rom.length})
+    const repository=new LibraryRepository(),url='https://roms.test.invalid/gba/catalog.gba'
+    const entry=await repository.importCatalogItem({id:'catalog-title-v1',title:'Catalog Title',objectKey:'gba/catalog.gba',downloadUrl:url,sizeBytes:rom.length,genres:[],featured:false})
+    expect(entry).toMatchObject({romId,localPath:first,remoteDownloadUrl:url})
+    expect([...state.memory.keys()].some(path=>path.startsWith('/data/roms/'))).toBe(false)
+
+    state.memory.delete(first);state.memory.set(second,rom)
+    state.downloadFile.mockResolvedValue({statusCode:200,tempFilePath:second,dataLength:rom.length})
+    await expect(repository.prepareForPlay(romId)).resolves.toMatchObject({romId,localPath:second})
+    expect(state.downloadFile).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('library repair',()=>{
@@ -94,5 +112,13 @@ describe('library repair',()=>{
     expect(games).toHaveLength(1)
     expect(games[0]).toMatchObject({romId:sha256Hex(rom),source:'recovered',importedAt:'2023-11-14T22:13:20.000Z'})
     expect(state.moves.some(move=>move.target.includes('/quarantine/'))).toBe(true)
+  })
+
+  it('preserves an on-demand ROM entry when its temporary file has expired',async()=>{
+    const romId='f'.repeat(64),remoteDownloadUrl='https://roms.test.invalid/gba/remote.gba'
+    state.memory.set('/data/library.json',JSON.stringify({schemaVersion:2,games:[{romId,title:'Remote',fileName:'remote.gba',localPath:'/tmp/expired.gba',sizeBytes:256,importedAt:'2026-01-01T00:00:00.000Z',playTimeSeconds:0,batterySave:false,cloudState:'disabled',source:'r2-catalog',remoteDownloadUrl}]}))
+    const repository=new LibraryRepository(),result=await repository.repairLibrary()
+    expect(result).toEqual({added:0,removed:0,quarantined:0})
+    await expect(repository.list()).resolves.toEqual([expect.objectContaining({romId,remoteDownloadUrl})])
   })
 })

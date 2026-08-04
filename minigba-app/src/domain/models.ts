@@ -29,6 +29,7 @@ export interface GameEntry {
   catalogObjectKey?: string
   catalogEtag?: string
   catalogUpdatedAt?: string
+  remoteDownloadUrl?: string
   lastSyncedAt?: string
   syncError?: string
 }

@@ -22,4 +22,8 @@ describe('platform error normalization',()=>{
     expect(isCancellationError({errMsg:'chooseMessageFile:fail cancel'})).toBe(true)
     expect(isCancellationError({errMsg:'network permission denied'})).toBe(false)
   })
+
+  it('turns the Douyin user directory quota failure into an actionable message',()=>{
+    expect(errorMessage({errMsg:'writeFile:fail user dir saved file size limit exceeded'})).toBe('小程序本地存储空间不足，请前往“设置 > 存储管理”清理后重试')
+  })
 })

@@ -3,13 +3,13 @@ type ErrorRecord=Record<string,unknown>
 export function errorMessage(error:unknown,fallback='未知错误'):string{
   if(error instanceof Error){
     const message=error.message.trim()
-    return message||error.name||fallback
+    return friendlyMessage(message||error.name||fallback)
   }
-  if(typeof error==='string')return error.trim()||fallback
+  if(typeof error==='string')return friendlyMessage(error.trim()||fallback)
   if(isRecord(error)){
     for(const key of['errMsg','message','errorMessage','errmsg','reason']){
       const value=error[key]
-      if(typeof value==='string'&&value.trim())return value.trim()
+      if(typeof value==='string'&&value.trim())return friendlyMessage(value.trim())
     }
     const code=error.code??error.errno
     if(typeof code==='string'||typeof code==='number')return`错误代码 ${code}`
@@ -44,4 +44,9 @@ export function isCancellationError(error:unknown):boolean{
 
 function isRecord(value:unknown):value is ErrorRecord{
   return Boolean(value)&&typeof value==='object'
+}
+
+function friendlyMessage(message:string):string{
+  if(/user dir saved file size limit exceeded/i.test(message))return'小程序本地存储空间不足，请前往“设置 > 存储管理”清理后重试'
+  return message
 }

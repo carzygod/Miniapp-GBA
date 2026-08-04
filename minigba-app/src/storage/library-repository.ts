@@ -2,6 +2,7 @@ import Taro from '@tarojs/taro'
 import { unzipSync } from 'fflate'
 import { LIBRARY_SCHEMA_VERSION, type GameEntry, type LibraryIndex, type RomCatalogItem } from '../domain/models'
 import { sha256Hex } from '../domain/sha256'
+import {currentPlatform} from '../platform/capabilities'
 import { dataRoot, ensureDirectory, exists, fileSize, listFilesRecursive, moveFile, readBytes, readText, unlinkIfExists, writeBytesAtomic, writeTextAtomic } from '../platform/fs'
 import {chooseLocalFile} from '../platform/local-files'
 
@@ -28,6 +29,18 @@ export class LibraryRepository {
 
   async getByCatalogId(catalogId: string): Promise<GameEntry | undefined> {
     return (await this.loadIndex()).games.find(game => game.catalogId === catalogId)
+  }
+
+  async prepareForPlay(romId:string,onProgress?:(progress:number)=>void):Promise<GameEntry>{
+    const index=await this.loadIndex(),entry=index.games.find(game=>game.romId===romId)
+    if(!entry)throw new Error('游戏不在本地游戏库中')
+    if(await exists(entry.localPath))return entry
+    if(!entry.remoteDownloadUrl)throw new Error('ROM 临时文件已被系统清理，请从 ROM 广场重新获取')
+    const downloaded=await downloadRom(entry.remoteDownloadUrl,entry.sizeBytes,onProgress)
+    validateGba(downloaded.bytes)
+    entry.localPath=await materializeRom(entry.romId,downloaded.bytes,downloaded.tempFilePath)
+    await this.saveIndex(index)
+    return entry
   }
 
   async chooseAndImport(): Promise<GameEntry> {
@@ -60,15 +73,11 @@ export class LibraryRepository {
     if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash)throw new Error('授权 ROM 地址必须使用无凭证、无片段的 HTTPS')
     if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('该域名不在授权 ROM 下载白名单中')
     if(!Number.isInteger(expectedSize)||expectedSize<0xc0||expectedSize>MAX_ROM_BYTES)throw new Error('授权 ROM 长度无效')
-    const response=await Taro.downloadFile({url:parsed.toString(),timeout:30_000})
-    if(response.statusCode!==200)throw new Error(`授权 ROM 下载失败 (${response.statusCode})`)
-    if(response.dataLength!==undefined&&response.dataLength!==expectedSize)throw new Error('下载响应长度与授权清单不一致')
-    const actualSize=await fileSize(response.tempFilePath)
-    if(actualSize!==expectedSize)throw new Error('下载文件长度与授权清单不一致')
-    const bytes=await readBytes(response.tempFilePath)
+    const downloaded=await downloadRom(parsed.toString(),expectedSize)
+    const bytes=downloaded.bytes
     validateGba(bytes);await confirmHeaderRisk(bytes)
     const fileName=(displayName?.trim()||decodeURIComponent(parsed.pathname.split('/').pop()||'authorized.gba')).replace(/\.gba$/i,'')+'.gba'
-    return this.storeBytes(bytes,fileName,'authorized-download')
+    return this.storeBytes(bytes,fileName,'authorized-download',downloaded.tempFilePath,parsed.toString())
   }
 
   async importCatalogItem(item:RomCatalogItem,onProgress?:(progress:number)=>void):Promise<GameEntry>{
@@ -77,19 +86,13 @@ export class LibraryRepository {
     if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash)throw new Error('ROM 广场下载地址必须使用无凭证、无片段的 HTTPS')
     if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('ROM 广场域名不在发布白名单中')
     if(!Number.isInteger(item.sizeBytes)||item.sizeBytes<0xc0||item.sizeBytes>MAX_ROM_BYTES)throw new Error('ROM 广场长度无效')
-    const task=Taro.downloadFile({url:parsed.toString(),timeout:30_000})
-    task.progress?.(event=>onProgress?.(Math.max(0,Math.min(100,event.progress))))
-    const response=await task
-    if(response.statusCode!==200)throw new Error(`ROM 下载失败 (${response.statusCode})`)
-    if(response.dataLength!==undefined&&response.dataLength!==item.sizeBytes)throw new Error('下载响应长度与 ROM 目录不一致')
-    const actualSize=await fileSize(response.tempFilePath)
-    if(actualSize!==item.sizeBytes)throw new Error('下载文件长度与 ROM 目录不一致')
-    const bytes=await readBytes(response.tempFilePath)
+    const downloaded=await downloadRom(parsed.toString(),item.sizeBytes,onProgress)
+    const bytes=downloaded.bytes
     validateGba(bytes);await confirmHeaderRisk(bytes)
-    const entry=await this.storeBytes(bytes,`${safeFileName(item.title)}.gba`,'r2-catalog')
+    const entry=await this.storeBytes(bytes,`${safeFileName(item.title)}.gba`,'r2-catalog',downloaded.tempFilePath,parsed.toString())
     const index=await this.loadIndex(),stored=index.games.find(game=>game.romId===entry.romId)
     if(!stored)throw new Error('ROM 已写入但游戏库索引缺失')
-    stored.title=item.title;stored.gameCode=item.gameCode||stored.gameCode;stored.coverUrl=item.coverUrl;stored.description=item.description;stored.genres=[...item.genres];stored.region=item.region;stored.language=item.language;stored.licenseName=item.license?.name;stored.catalogId=item.id;stored.catalogObjectKey=item.objectKey;stored.catalogEtag=item.etag;stored.catalogUpdatedAt=item.updatedAt
+    stored.title=item.title;stored.gameCode=item.gameCode||stored.gameCode;stored.coverUrl=item.coverUrl;stored.description=item.description;stored.genres=[...item.genres];stored.region=item.region;stored.language=item.language;stored.licenseName=item.license?.name;stored.catalogId=item.id;stored.catalogObjectKey=item.objectKey;stored.catalogEtag=item.etag;stored.catalogUpdatedAt=item.updatedAt;stored.remoteDownloadUrl=parsed.toString()
     await this.saveIndex(index)
     return stored
   }
@@ -111,23 +114,26 @@ export class LibraryRepository {
 
   async removeRom(romId:string):Promise<void>{
     const index=await this.loadIndex(),position=index.games.findIndex(item=>item.romId===romId);if(position<0)return
-    const [game]=index.games.splice(position,1);await this.saveIndex(index);if(game)await unlinkIfExists(game.localPath)
+    const [game]=index.games.splice(position,1);await this.saveIndex(index);if(game&&isPersistentRomPath(game.localPath))await unlinkIfExists(game.localPath)
   }
 
-  private async storeBytes(bytes:Uint8Array,fileName:string,source:GameEntry['source']='wechat-message-file'):Promise<GameEntry>{
+  private async storeBytes(bytes:Uint8Array,fileName:string,source:GameEntry['source']='wechat-message-file',temporaryPath?:string,remoteDownloadUrl?:string):Promise<GameEntry>{
     const romId = sha256Hex(bytes)
-    const localPath = romPath(romId)
-    await ensureDirectory(localPath.slice(0,localPath.lastIndexOf('/')))
-    if (!(await exists(localPath))) await writeBytesAtomic(localPath, bytes)
+    const localPath=await materializeRom(romId,bytes,temporaryPath)
 
     const current = await this.loadIndex()
     const existing = current.games.find(game => game.romId === romId)
-    if (existing) return existing
+    if (existing) {
+      existing.localPath=localPath
+      if(remoteDownloadUrl)existing.remoteDownloadUrl=remoteDownloadUrl
+      await this.saveIndex(current)
+      return existing
+    }
     const header = parseHeader(bytes)
     const entry: GameEntry = {
       romId, title: header.title || fileName.replace(/\.gba$/i, ''), gameCode: header.gameCode,
       fileName, localPath, sizeBytes: bytes.length, importedAt: new Date().toISOString(),
-      playTimeSeconds: 0, batterySave: false, cloudState: 'disabled',source,
+      playTimeSeconds: 0, batterySave: false, cloudState: 'disabled',source,remoteDownloadUrl,
     }
     current.games.push(entry)
     await this.saveIndex(current)
@@ -202,6 +208,7 @@ export class LibraryRepository {
         await moveFile(file.path,target);quarantined++
       }
     }
+    for(const prior of previous)if(prior.remoteDownloadUrl&&!seen.has(prior.romId)){games.push(prior);seen.add(prior.romId)}
     return{index:{schemaVersion:LIBRARY_SCHEMA_VERSION,games},quarantined}
   }
 }
@@ -269,6 +276,30 @@ function safeZipPath(path:string):boolean{
 }
 
 function romPath(romId:string):string{return`${romRoot}/${romId.slice(0,2)}/${romId.slice(2,4)}/${romId}.gba`}
+
+async function materializeRom(romId:string,bytes:Uint8Array,temporaryPath?:string):Promise<string>{
+  if(currentPlatform()==='tt'&&temporaryPath)return temporaryPath
+  const localPath=romPath(romId)
+  await ensureDirectory(localPath.slice(0,localPath.lastIndexOf('/')))
+  if(!(await exists(localPath)))await writeBytesAtomic(localPath,bytes)
+  return localPath
+}
+
+async function downloadRom(url:string,expectedSize:number,onProgress?:(progress:number)=>void):Promise<{bytes:Uint8Array;tempFilePath:string}>{
+  const parsed=new URL(url)
+  if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash)throw new Error('ROM 下载地址必须使用无凭证、无片段的 HTTPS')
+  if(!authorizedHosts.size||!authorizedHosts.has(parsed.host.toLowerCase()))throw new Error('ROM 下载域名不在发布白名单中')
+  const task=Taro.downloadFile({url:parsed.toString(),timeout:30_000})
+  task.progress?.(event=>onProgress?.(Math.max(0,Math.min(100,event.progress))))
+  const response=await task
+  if(response.statusCode!==200)throw new Error(`ROM 下载失败 (${response.statusCode})`)
+  if(response.dataLength!==undefined&&response.dataLength!==expectedSize)throw new Error('下载响应长度与 ROM 目录不一致')
+  const actualSize=await fileSize(response.tempFilePath)
+  if(actualSize!==expectedSize)throw new Error('下载文件长度与 ROM 目录不一致')
+  return{bytes:await readBytes(response.tempFilePath),tempFilePath:response.tempFilePath}
+}
+
+function isPersistentRomPath(path:string):boolean{return path.startsWith(`${dataRoot}/`)}
 
 function safeFileName(value:string):string{return value.replace(/[\\/:*?"<>|]/g,'_').trim().slice(0,80)||'authorized-rom'}
 

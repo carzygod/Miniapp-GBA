@@ -141,8 +141,8 @@ export default function PlayerPage(){
   useEffect(()=>{
     let cancelled=false
     ;(async()=>{try{
-      const entry=await libraryRepository.get(romId)
-      if(!entry)throw new Error('游戏不在本地游戏库中')
+      setMessage('正在准备 ROM')
+      const entry=await libraryRepository.prepareForPlay(romId,progress=>setMessage(`正在下载 ROM ${progress}%`))
       gameRef.current=entry;setGame(entry)
       const canvas=await selectCanvas();if(cancelled)return
       canvas.width=240;canvas.height=160;canvasRef.current=canvas

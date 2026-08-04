@@ -26,11 +26,12 @@ if(!existsSync(wasmPath)||statSync(wasmPath).size===0)throw new Error('Douyin ou
 const javascript=files.filter(path=>path.endsWith('.js')).map(path=>readFileSync(path,'utf8')).join('\n')
 if(!javascript.includes('TTWebAssembly'))throw new Error('Douyin output does not reference TTWebAssembly')
 if(javascript.includes('WXWebAssembly'))throw new Error('Douyin output still references WXWebAssembly')
+if(!javascript.includes('remoteDownloadUrl'))throw new Error('Douyin output is missing temporary ROM recovery support')
 
 const unexpectedWeChatFiles=files.filter(path=>/\.(?:wxml|wxss)$/.test(path))
 if(unexpectedWeChatFiles.length)throw new Error(`Douyin output contains WeChat templates: ${unexpectedWeChatFiles.map(path=>relative(root,path)).join(', ')}`)
 
-console.log(JSON.stringify({validated:true,appid:project.appid,projectType:project.douyinProjectType,ttmlFiles:ttmlFiles.length,ttssFiles:ttssFiles.length,tabBarIcons,wasmBytes:statSync(wasmPath).size}))
+console.log(JSON.stringify({validated:true,appid:project.appid,projectType:project.douyinProjectType,ttmlFiles:ttmlFiles.length,ttssFiles:ttssFiles.length,tabBarIcons,romStorage:'temporary-on-demand',wasmBytes:statSync(wasmPath).size}))
 
 function walk(directory){
   return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{

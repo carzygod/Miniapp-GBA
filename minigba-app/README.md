@@ -14,7 +14,7 @@ MiniGBA App is the standalone Taro/React/TypeScript client for WeChat and Douyin
 
 - Users import ROMs they are legally allowed to use.
 - The app never uploads user ROMs. Catalog license metadata is displayed when supplied; missing rights metadata is shown as unmarked and is not inferred from an R2 object name.
-- ROM files remain local by default. Cloud synchronization stores save data only.
+- ROM files remain on-device and are never uploaded. WeChat keeps imported ROMs in its persistent user directory; Douyin keeps downloaded ROMs in temporary storage because its mini-program user directory is limited to 10 MiB, and downloads them again on play if the host has evicted the temporary file. Cloud synchronization stores save data only.
 - The app uses the separately versioned `minigba-core` WXWebAssembly artifact.
 
 ## Repository layout
@@ -68,6 +68,8 @@ minigba-app/dist-douyin
 ```
 
 The generated project uses `testAppId` for local import. Replace it with a real Douyin Mini Program AppID through `TARO_APP_ID` when building an authenticated project. Do not import `project.tt.json` directly; the generated `dist-douyin/project.config.json` has `miniprogramRoot` normalized to `./`.
+
+Douyin catalog ROMs use `tt.downloadFile` temporary storage instead of the 10 MiB persistent user directory. The library persists only metadata and save files; when a temporary ROM has been evicted, opening the player downloads the same allowlisted HTTPS object again and verifies its declared length and GBA header. This intentionally does not add a catalog SHA-256 requirement.
 
 Do not import the repository root or `src`. The project pins the locally complete WeChat base library `3.15.2`; the production validator rejects a different generated `libVersion` and unsupported WXSS universal selectors. This avoids the gray `3.16.1` selection and the incomplete `3.17.0` vendor cache observed with WeChat Developer Tools 2.01.2510290.
 
